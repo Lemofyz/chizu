@@ -174,7 +174,7 @@
       <details><summary>Can I pass my Chizu on later?</summary><p>Yes, transfers are coming after launch. Your numbered Chizu belongs to your account, and you'll be able to transfer it to another person at any price up to the current official price, so a second-hand Chizu is never more expensive than a new one. vubeing keeps 10% of the transfer price. Your study history, cards and fish stay with your account; the new owner gets the number, the certificate and Chizu. Transfers only happen inside vubeing: your reservation and your payment link work only for the Google account that reserved, there are no activation codes, and we don't recognize account sales or deals made elsewhere. To keep it fair, a Chizu can be transferred once it has been with its owner for 30 days. Please reserve because you want her, not as an investment: we make no promise about what any Chizu will be worth.</p></details>
       <details><summary>Missed the early price?</summary><p>Every new character we make launches the same way: No.0001 free, then $1 more each. If Chizu is past your budget, wait for the next one and come early. Reserving a Chizu, or trying the free demo, is how you hear about new characters first.</p></details>
       <details><summary>Are outfits included?</summary><p>No. Outfits are sold separately, so you only pay for the looks you love. You can try pajamas on in the demo.</p></details>
-      <details><summary>Why does the price go up?</summary><p>To thank the people who believed in her first. No.0001 is free, then each one is $1 more, up to $100 at No.0101. After that the price rises $10 for every 1,000 sold. Your price never changes after you reserve.</p></details>
+      <details><summary>Why does the price go up?</summary><p>To thank the people who believed in her first. No.0001 is free, then each one is $1 more, up to $100 at No.0101. After that the price rises $50 for every 1,000 sold. Your price never changes after you reserve.</p></details>
       <details><summary>Is there a real plush?</summary><p>Not yet. If enough people want one, a small physical Chizu is next. Reservation holders hear first.</p></details>
       <details><summary>Is she AI?</summary><p>Her looks and moves are animations. When she helps you study, and on calls, she is powered by AI. She's a digital being made by vubeing, not a person.</p></details>
       <details><summary>Who's behind this?</summary><p>vubeing, a small team that makes digital beings. Questions: hello@vubeing.com</p></details>
@@ -193,8 +193,8 @@
   const sb = createClient(CHIZU_STUDY.url, CHIZU_STUDY.key, { auth: { flowType: 'pkce', detectSessionInUrl: false, persistSession: true, autoRefreshToken: true, storageKey: 'chizu-study-auth' } });
   const PAY_DATE = 'December 3';
   const pad = n => String(n).padStart(4,'0');
-  // Same ladder as chizu_price in the database: free, +$1 each up to $100 at No.101, then +$10 for every 1,000 sold.
-  const priceOf = no => no <= 101 ? no - 1 : 100 + 10 * Math.floor((no - 101) / 1000);
+  // Same ladder as chizu_price in the database: free, +$1 each up to $100 at No.101, then +$50 for every 1,000 sold.
+  const priceOf = no => no <= 101 ? no - 1 : 100 + 50 * Math.floor((no - 101) / 1000);
   const priceLabel = no => priceOf(no) === 0 ? 'Free' : '$' + priceOf(no);
   let reserved = 0;
 
