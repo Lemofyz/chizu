@@ -150,6 +150,11 @@
   #studyMain[hidden]{display:none}
   body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
   .avatarSpace{height:124px;flex:none;pointer-events:none}
+  /* Tapping her small head opens this menu just above her. */
+  .chizumenu{position:fixed;z-index:7;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 220px);display:flex;flex-direction:column;gap:.35rem;min-width:200px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:.45rem;box-shadow:0 12px 32px rgba(62,51,82,.16)}
+  .chizumenu button{border:0;border-radius:999px;padding:.5rem .85rem;font-weight:700;font-size:.85rem;background:var(--tint);color:var(--deep);cursor:pointer;white-space:nowrap}
+  .chizumenu button:disabled{opacity:.5}
+  body.studying.dropping .log{outline:2px dashed var(--lav);outline-offset:-6px;border-radius:16px}
   /* Like ChatGPT's orb: with no question card open the chat runs all the way down and she simply floats over it. */
   body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
   body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:16px;margin-bottom:.4rem}
@@ -241,8 +246,10 @@
   <p id="statSum"></p>
   <div class="bars" id="bars"></div>
   <div class="row"><button id="shareBtn">Make today's share card</button></div>
-  <div class="sect">Library and growth</div>
-  <p class="muted"><a href="study/">Open your library, growth curve and cards in Study →</a></p>
+  <div class="sect">Growth · questions answered right, all time</div>
+  <div class="growth" id="growth"><p class="muted">Sign in under 📖 Study to see your growth curve.</p></div>
+  <div class="sect">Library · what you've studied</div>
+  <div class="lib" id="library"><p class="muted">Your topics appear here after your first questions with Chizu.</p></div>
 </div>
 
 <div class="sheet tall" id="studySheet" role="dialog" aria-label="Study with Chizu">
@@ -273,7 +280,17 @@
       <div class="row rate"><button data-rate="1">Forgot</button><button data-rate="2">Hard</button><button data-rate="3">Good</button><button data-rate="4">Easy</button></div>
     </div>
     <div class="avatarSpace" aria-hidden="true"></div>
-    <div class="row"><button class="ghost" id="studyQuiz">Quiz me</button><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button id="studySend">Send</button></div>
+    <div class="chizumenu" id="chizuMenu" hidden role="menu">
+      <button id="mHint" role="menuitem">Hint</button>
+      <button id="mUpload" role="menuitem">Upload a file</button>
+      <button id="mCamera" role="menuitem">Take a photo</button>
+      <button id="mPhotos" role="menuitem">Choose from photos</button>
+      <button id="mTired" role="menuitem">I'm tired</button>
+      <input type="file" id="mFile" hidden accept=".pdf,.docx,.txt,.md,application/pdf,text/plain">
+      <input type="file" id="mCam" hidden accept="image/*" capture="environment">
+      <input type="file" id="mPick" hidden accept="image/*">
+    </div>
+    <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button id="studySend">Send</button></div>
     <span class="meta" id="studyMeta" hidden></span>
   </div>
 </div>
@@ -789,17 +806,6 @@
   window.addEventListener('pageshow', () => setTimeout(resumeVideo, 60));
   window.addEventListener('focus', resumeVideo);
 
-  // ---------- Study lives in its own page (1O1's learning app in Chizu mode) ----------
-  const goStudy = () => { location.href = 'study/'; };
-  $('studyBtn').onclick = goStudy;
-  // Swipe up on her main screen to start studying.
-  let swipe = null;
-  document.addEventListener('touchstart', e => { const t = e.touches[0]; swipe = {x: t.clientX, y: t.clientY, control: !!e.target.closest('button, input, a, .sheet, .celebrate, .shareview')}; }, {passive: true});
-  document.addEventListener('touchend', e => {
-    if (!swipe) return; const t = e.changedTouches[0], dy = t.clientY - swipe.y, dx = t.clientX - swipe.x, s = swipe; swipe = null;
-    if (dy < -70 && Math.abs(dx) < 60 && !s.control && !document.querySelector('.sheet.open')) goStudy();
-  }, {passive: true});
-
   // ---------- Start ----------
   settleHunger();
   wear(st.outfit, true);
@@ -810,6 +816,8 @@
   }
   render();
 </script>
+<script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
+<script type="module" src="study.js?v=21"></script>
 </body>
 </html>

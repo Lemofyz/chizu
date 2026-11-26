@@ -211,7 +211,7 @@ function render(full) {
   if (full) {
     el('studyLog').innerHTML = '';
     const msgs = inSession(L().messages).filter(m => !(m.role === 'user' && m.content === '(flashcard)')).slice(-16);
-    if (!msgs.length) bubble('her', "Hi. What are we studying today? Tell me the subject, or tap Quiz me.");
+    if (!msgs.length) bubble('her', "Hi. What do you want to learn? Tell me the subject and I'll start with a few quick questions.");
     // Instructions the page sends on your behalf show as the button you pressed.
     const said = t => /^Give me one new question on what I have been studying/.test(t) ? 'Quiz me.' : /^Give me one practice question on what I just forgot/.test(t) ? 'Practice what I forgot' : t;
     // Flashcard self-ratings are stored as an answer and its notes; they are not part of the conversation.
@@ -245,7 +245,6 @@ function render(full) {
   const mine = new Set(inSession(L().questions).map(q => q.id));
   const due = L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).length;
   el('studyMeta').textContent = freeLeft() + ' of ' + FREE_DAILY + ' free questions left today';
-  el('studyQuiz').textContent = due && !q ? 'Review ' + due + (due === 1 ? ' card' : ' cards') : 'Quiz me';
   window.chizuDue = due;
 }
 
@@ -296,15 +295,31 @@ async function run(body, userText, quiet = false) {
     if (/free questions/.test(e.message)) { say('treat'); }
   } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); }
 }
-function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost']) el(id).disabled = b; }
+function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
+// "I'm tired" pauses the automatic questions until you say something again.
+let paused = false;
+// The learning flow runs by itself: due reviews first, then new questions (the backend decides which).
+function keepGoing(delay = 2200) {
+  setTimeout(async () => {
+    if (sending || paused || !document.body.classList.contains('studying') || openQuestion()) return;
+    // Reviews rate themselves from right or wrong: right = Good, wrong = Again, so a missed point comes back until it sticks.
+    const rv = pendingReview();
+    if (rv) {
+      const at = L().attempts.filter(a => a.question_id === rv.id && !L().reviewedAttempts.includes(a.id)).at(-1);
+      if (at) await run({ action: 'learn-review', cardId: rv.review_card_id, attemptId: at.id, rating: at.correct ? 3 : 1 }, null, true);
+      return keepGoing(600);
+    }
+    run({ action: 'learn-next' }, null);
+  }, delay);
+}
 
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t) return;
   el('studyText').value = ''; el('studyText').blur();  // send closes the keyboard, like ChatGPT
-  run({ action: 'learn-chat', text: t }, t);
+  paused = false;
+  run({ action: 'learn-chat', text: t }, t).then(() => keepGoing());
 };
 el('studyText').onkeydown = e => { if (e.key === 'Enter') el('studySend').click(); };
-el('studyQuiz').onclick = () => { const d = !openQuestion() && dueCards()[0]; if (d) showFlash(d); else run({ action: 'learn-next' }, 'Quiz me.'); };
 el('qCheck').onclick = async () => {
   const q = openQuestion(), a = el('qAnswer').value.trim(); if (!q || !a) return;
   el('qAnswer').value = ''; el('qAnswer').blur();
@@ -315,9 +330,7 @@ async function answer(q, value, label) {
   const reply = await run({ action: 'learn-answer', questionId: q.id, answer: value }, label);
   if (!reply) return;
   if (/Correct|对啦/.test(reply)) fxCenter('✨');
-  setTimeout(() => {
-    if (!sending && !openQuestion() && !pendingReview() && document.body.classList.contains('studying')) run({ action: 'learn-next' }, null);
-  }, 2200);
+  keepGoing();
 }
 el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
 el('qLost').onclick = () => run({ action: 'learn-chat', text: "I didn't get it. Can you explain it another way?" }, "I don't get it.");
@@ -334,8 +347,11 @@ async function openStudy() {
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   if (!s) return;
   sid = await chizuSessionId(s.user.id);
-  try { state = await loadState(); render(true); }
-  catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
+  try {
+    state = await loadState(); render(true);
+    // Opening study starts right away for someone who has studied before; a new learner is asked what to learn.
+    if (inSession(L().questions).length) keepGoing(800);
+  } catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
 // Swipes: on the main screen, swipe up to start studying; in the chat, swipe up past the newest message to go back to her.
@@ -355,7 +371,61 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 // Tapping her small head (or Escape) brings her back to the middle of the screen.
-el('frame').addEventListener('click', e => { if (document.body.classList.contains('studying')) { e.stopPropagation(); openSheet(''); } }, true);
+// Tapping her small head opens her menu (Hint / Upload a file / I'm tired). Leaving study is the × or a swipe.
+el('frame').addEventListener('click', e => {
+  if (!document.body.classList.contains('studying')) return;
+  e.stopPropagation();
+  el('mHint').hidden = !openQuestion();
+  el('chizuMenu').hidden = !el('chizuMenu').hidden;
+}, true);
+const closeMenu = () => { el('chizuMenu').hidden = true; };
+// Hint: guess first. The first tap only nudges; tapping again on the same question gets a hint, never the answer.
+let nudged = null;
+el('mHint').onclick = () => {
+  closeMenu(); const q = openQuestion(); if (!q) return;
+  if (nudged !== q.id) { nudged = q.id; bubble('her pop', 'Have a guess first. Wrong is fine, it turns into a card to practise.'); act('h_tilt'); return; }
+  run({ action: 'learn-chat', text: 'Give me a small hint for this question, without telling me the answer.' }, 'Hint, please.');
+};
+el('mTired').onclick = () => { closeMenu(); paused = true; run({ action: 'learn-chat', text: "I'm tired." }, "I'm tired."); };
+// Upload: from her menu, or drop a file anywhere on the study screen (same as 1O1's upload: PDF, Word, images, text, up to 8MB).
+async function upload(file) {
+  if (!file || sending) return;
+  if (file.size > 8 * 1024 * 1024) return bubble('err pop', 'Please keep files under 8MB.');
+  // The backend can't read text in images, so photos are read here first (free, in the browser) and sent as text.
+  if (file.type.startsWith('image/')) {
+    bubble('me', '📷 ' + (file.name || 'photo'));
+    const note = bubble('her pop', 'Reading your photo…'); act('h_think');
+    let text = '';
+    try { text = (await ocr(file)).trim(); } catch (_) {}
+    note.remove();
+    if (text.length < 8) { bubble('err pop', "I couldn't read the words in that photo. Try a closer, brighter shot of printed text."); return act('h_frown'); }
+    file = new File([text], (file.name || 'photo').replace(/\.[^.]+$/, '') + '.txt', { type: 'text/plain' });
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer()); let bin = '';
+  for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode(...bytes.subarray(i, i + 32768));
+  paused = false;
+  await run({ action: 'learn-upload', name: file.name, base64: btoa(bin) }, '📎 ' + file.name);
+  keepGoing();
+}
+// Tesseract (open source OCR) is loaded only the first time a photo is used.
+let tess = null;
+function ocr(file) {
+  tess ??= new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => res(window.Tesseract); s.onerror = rej; document.head.appendChild(s); });
+  return tess.then(T => T.recognize(file, 'eng')).then(r => r.data.text);
+}
+for (const [btn, input] of [['mUpload', 'mFile'], ['mCamera', 'mCam'], ['mPhotos', 'mPick']]) {
+  el(btn).onclick = () => { closeMenu(); el(input).click(); };
+  el(input).onchange = e => { const f = e.target.files[0]; e.target.value = ''; upload(f); };
+}
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { if (!document.body.classList.contains('studying')) return; e.preventDefault(); dragDepth++; document.body.classList.add('dropping'); });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dropping'); } });
+window.addEventListener('dragover', e => { if (document.body.classList.contains('studying')) e.preventDefault(); });
+window.addEventListener('drop', e => {
+  if (!document.body.classList.contains('studying')) return;
+  e.preventDefault(); dragDepth = 0; document.body.classList.remove('dropping');
+  upload(e.dataTransfer.files[0]);
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('studying')) openSheet(''); });
 
 
