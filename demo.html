@@ -156,7 +156,10 @@
   body.studying.growing #pic{-webkit-mask-image:var(--fade);mask-image:var(--fade)}  /* growing back: no square edge on HDR screens */
   /* Growing back (--grow 0→1, set by the drag or the glide): her study chrome, the white disc and its shadow, fades away with the growth,
      and the main screen's focus bar and links fade in alongside her, so nothing is a square at the end or pops in after. */
-  body.studying.growing .frame{background:transparent;box-shadow:0 10px 30px rgba(62,51,82,calc(.18 * (1 - var(--grow, 0))))}
+  body.morphing .frame{background:transparent;box-shadow:0 10px 30px rgba(62,51,82,calc(.18 * var(--round, 0)))}
+  body.morphing .frame .bubble{opacity:0;transition:opacity .15s}
+  /* Going into study: the main screen's controls fade as she turns round, so nothing she passes over stays on top of her. */
+  body.morphing:not(.studying) .bar,body.morphing:not(.studying) .state,body.morphing:not(.studying) .reserve,body.morphing:not(.studying) .top .pill:not(#todayBtn){opacity:calc(1 - var(--round, 0))}
   body.studying.growing .bar,body.studying.growing .reserve{opacity:var(--grow, 0)}
   /* Just arrived back: the top buttons settle in instead of appearing at once. */
   body.arriving .top .pill,body.arriving .state{animation:fadein .3s var(--ease-out) both}
@@ -664,36 +667,56 @@
   function smallRect(){ const s = 108, bottom = Math.max(16, safeBottom) + 66; return {cx: innerWidth / 2, cy: innerHeight - bottom - s / 2, size: s}; }
   function bigRect(){ const s = Math.min(innerWidth * .92, innerHeight * .62); return {cx: innerWidth / 2, cy: innerHeight / 2, size: s}; }
   function rectOf(el){ const r = el.getBoundingClientRect(); return {cx: r.left + r.width / 2, cy: r.top + r.height / 2, size: r.width}; }
-  function applyDrag(p, d = drag, animate = ''){
+  // Her two shapes and every frame between them: on the main screen, all of her in a soft-edged square; in study, her face
+  // in a round avatar. One progress value drives size and position, roundness (a clip, so it shows on the main screen too),
+  // framing (all of her → her face, photo and playing video alike), and the white disc and shadow. Nothing switches at the end.
+  // `t` is a timing like '.4s var(--ease-drawer)'; empty means follow the finger 1:1.
+  const ZOOM = .85;  // study shows her at 1.85×, centred on her face (transform-origin 50% 34%, as in the CSS)
+  const media = () => [img, ...vids.filter(v => v.dataset.kind !== 'head')];
+  function applyDrag(p, d = drag, t = ''){
     const a = d.from, b = d.to, lerp = (x, y) => x + (y - x) * p;
-    frame.style.transition = animate;
+    const round = d.toStudy ? p : 1 - p;          // 0 = her main-screen self, 1 = her study avatar
+    const tr = props => t ? props.map(x => x + ' ' + t).join(', ') : 'none';
+    document.body.classList.add('morphing');
+    document.body.style.setProperty('--round', String(round));
+    frame.style.transition = tr(['transform', 'border-radius', 'box-shadow']);
     frame.style.transform = 'translate(' + (lerp(a.cx, b.cx) - a.cx) + 'px,' + (lerp(a.cy, b.cy) - a.cy) + 'px) scale(' + (lerp(a.size, b.size) / a.size) + ')';
-    if (d.toStudy) frame.style.borderRadius = (p * 50) + '%';
-    else {
-      // Growing back: the face close-up fades and her whole body comes into view, so no giant face.
-      frame.style.borderRadius = ((1 - p) * 50) + '%';
+    frame.style.borderRadius = (round * 50) + '%';
+    pic.style.transition = tr(['clip-path']);
+    pic.style.clipPath = 'inset(0 round ' + (round * 50) + '%)';
+    media().forEach(m => { m.style.transition = tr(['transform']); m.style.transformOrigin = '50% 34%'; m.style.transform = 'scale(' + (1 + ZOOM * round) + ')'; });
+    if (!d.toStudy) {
+      // Growing back: the chat and her face close-up fade out as all of her comes into view.
       $('studySheet').style.opacity = String(1 - p);
       document.body.style.setProperty('--grow', String(p));
       vids.forEach(v => { if (v.dataset.kind === 'head') v.style.opacity = String(Math.max(0, 1 - p * 2)); });
-      img.style.transition = animate; img.style.transform = 'scale(' + (1.85 - .85 * p) + ')';
     }
+  }
+  // Clear everything the morph set inline, with transitions off, so the layout switch underneath shows no jump.
+  function clearMorph(){
+    document.body.classList.remove('morphing', 'growing');
+    document.body.style.removeProperty('--round'); document.body.style.removeProperty('--grow');
+    frame.style.transition = 'none'; frame.style.transform = ''; frame.style.borderRadius = '';
+    pic.style.transition = 'none'; pic.style.clipPath = '';
+    media().forEach(m => { m.style.transition = 'none'; m.style.transform = ''; m.style.transformOrigin = ''; });
+    $('studySheet').style.opacity = ''; vids.forEach(v => { v.style.opacity = ''; });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      frame.style.transition = ''; pic.style.transition = ''; media().forEach(m => { m.style.transition = ''; });
+    }));
   }
   function endDrag(commit){
     const d = drag; drag = null;
-    const reset = () => { document.body.style.removeProperty('--grow'); frame.style.transform = ''; frame.style.borderRadius = ''; $('studySheet').style.opacity = ''; img.style.transform = ''; vids.forEach(v => { v.style.opacity = ''; }); };
     if (!commit) {
-      // Not far enough: spring back to where she was.
-      frame.style.transition = 'transform .32s ' + SPRING + ', border-radius .25s ease'; img.style.transition = 'transform .25s ease'; reset();
-      setTimeout(() => { frame.style.transition = ''; img.style.transition = ''; document.body.classList.remove('growing'); }, 360);
+      // Not far enough: spring back along the same path to where she was.
+      applyDrag(0, d, '.32s ' + SPRING);
+      setTimeout(clearMorph, 360);
       return;
     }
-    // Far enough: glide the rest of the way, then switch layouts with transitions off so nothing jumps.
-    applyDrag(1, d, 'transform .3s var(--ease-drawer), border-radius .3s ease');
+    // Far enough: glide the rest of the way, then switch layouts underneath.
+    applyDrag(1, d, '.3s var(--ease-drawer)');
     setTimeout(() => {
-      document.body.classList.remove('growing');
-      frame.style.transition = 'none'; img.style.transition = 'none'; reset();
+      clearMorph();
       noGlide = true; try { if (d.toStudy) $('studyBtn').click(); else openSheet(''); } finally { noGlide = false; }
-      requestAnimationFrame(() => requestAnimationFrame(() => { frame.style.transition = ''; img.style.transition = ''; }));
     }, 300);
   }
   document.addEventListener('touchstart', e => {
@@ -749,15 +772,13 @@
       const d = {toStudy: now, from: rectOf(frame), to: now ? smallRect() : bigRect()};
       if (!now) { document.body.classList.add('growing'); $('studySheet').style.transition = 'opacity .25s ease'; }
       if (!now) document.querySelectorAll('.bar, .reserve').forEach(x => { x.style.transition = 'opacity .4s ease'; });
-      applyDrag(1, d, 'transform .4s var(--ease-drawer), border-radius .4s var(--ease-drawer), box-shadow .4s ease');
+      // Start from her current shape as a clip with no rounding, so the browser can ease it (it can't ease from no clip at all).
+      applyDrag(0, d); void frame.offsetWidth;
+      applyDrag(1, d, '.4s var(--ease-drawer)');
       setTimeout(() => {
-        document.body.classList.remove('growing');
-        frame.style.transition = 'none'; img.style.transition = 'none';
-        document.body.style.removeProperty('--grow'); frame.style.transform = ''; frame.style.borderRadius = ''; img.style.transform = '';
-        $('studySheet').style.opacity = ''; $('studySheet').style.transition = ''; vids.forEach(v => { v.style.opacity = ''; });
+        clearMorph(); $('studySheet').style.transition = '';
         gliding = false; noGlide = true; try { openSheet(id); } finally { noGlide = false; }
         if (now) $('studyLog').scrollTop = 1e9;
-        requestAnimationFrame(() => requestAnimationFrame(() => { frame.style.transition = ''; img.style.transition = ''; }));
       }, 400);
       return;
     }
