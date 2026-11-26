@@ -153,12 +153,12 @@
         <input type="text" id="name" name="name" maxlength="24" placeholder="Name for your certificate (optional)" aria-label="Name for your certificate">
         <button class="btn" type="submit" id="resBtn"><span>Join the line: spot #<span data-nextno>0001</span> · <span data-price>Free</span></span></button>
       </form>
-      <p class="fine">Joining is free: sign in with Google (one per account). When checkout opens on <b data-paydate>December 3</b>, everyone in line gets 48 hours to pay first. Anyone who doesn't pay in those 48 hours gives up their spot, and everyone behind them moves up, so your price can only go down. When you pay, you pick your Chizu's number. If you change your mind, just don't pay.</p>
+      <p class="fine">Joining is free: sign in with Google (one per account). We'll email you at least a week before checkout opens. When it opens, everyone in line gets 48 hours to pay first. Anyone who doesn't pay in those 48 hours gives up their spot, and everyone behind them moves up, so your price can only go down. When you pay, you pick your Chizu's number. If you change your mind, just don't pay.</p>
       <div class="done-box" id="done">
         <div class="eyebrow">You're in line</div>
         <b id="doneNo">#0001</b>
         <p id="donePrice" style="color:var(--soft)"></p>
-        <p style="color:var(--soft);margin-top:.4rem">Watch your inbox on <span data-paydate>December 3</span>.</p>
+        <p style="color:var(--soft);margin-top:.4rem">We'll email you at least a week before checkout opens.</p>
       </div>
     </div>
     <div class="steps" id="steps"></div>
@@ -190,7 +190,6 @@
   // Numbers and locked prices come from the database (chizu_reserve), one per Google account.
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
   const sb = createClient(CHIZU_STUDY.url, CHIZU_STUDY.key, { auth: { flowType: 'pkce', detectSessionInUrl: false, persistSession: true, autoRefreshToken: true, storageKey: 'chizu-study-auth' } });
-  const PAY_DATE = 'December 3';
   const pad = n => String(n).padStart(4,'0');
   // Same ladder as chizu_price in the database: free, +$1 each up to $100 at No.101, then +$50 for every 1,000 sold.
   const priceOf = no => no <= 101 ? no - 1 : 100 + 50 * Math.floor((no - 101) / 1000);
@@ -202,7 +201,6 @@
     document.querySelectorAll('[data-count]').forEach(e => e.textContent = reserved.toLocaleString());
     document.querySelectorAll('[data-nextno]').forEach(e => e.textContent = pad(next));
     document.querySelectorAll('[data-price]').forEach(e => e.textContent = priceLabel(next));
-    document.querySelectorAll('[data-paydate]').forEach(e => e.textContent = PAY_DATE);
     const rows = [];
     for (const no of [1,2,3,Math.max(4,next-1),next,next+1,next+5,next+20]) if (!rows.includes(no)) rows.push(no);
     rows.sort((a,b)=>a-b);
