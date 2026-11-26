@@ -134,6 +134,7 @@ function renderFolders() {
   el('subjBar').hidden = !subjects.length;
   el('subjName').textContent = current()?.name || T('新科目', 'New subject');
   el('studyText').placeholder = T('跟芝士说点什么…', 'Talk to Chizu…');
+  el('mUpload').textContent = T('照片或文件', 'Photo or file');
   el('subjList').innerHTML = subjects.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) +
     '<small>' + T(f.cards + ' 张卡' + (f.due ? ' · ' + f.due + ' 张待复习' : ''), f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '')) + '</small></button>').join('') +
     '<button data-subj="">' + T('+ 新科目', '+ New subject') + '<small></small></button>';
@@ -216,7 +217,7 @@ function toBottom() { log().scrollTop = 1e9; requestAnimationFrame(() => request
 
 // ---------- One turn: send, then show what comes back in order ----------
 function setBusy(b) {
-  for (const id of ['studySend', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b;
+  for (const id of ['studySend', 'mHint', 'mUpload', 'mTired']) el(id).disabled = b;
   cardEl?.querySelectorAll('.qCheck,.qLost').forEach(x => x.disabled = b);
 }
 // Her thinking faces while the model writes; when it ends she goes back to blinking (a stopped clip would freeze her face).
@@ -373,7 +374,7 @@ function ocr(file) {
   tess ??= new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => res(window.Tesseract); s.onerror = rej; document.head.appendChild(s); });
   return tess.then(T => T.recognize(file, 'eng+chi_sim')).then(r => r.data.text);
 }
-for (const [btn, input] of [['mUpload', 'mFile'], ['mCamera', 'mCam'], ['mPhotos', 'mPick']]) {
+for (const [btn, input] of [['mUpload', 'mFile']]) {
   el(btn).onclick = () => { closeMenu(); el(input).click(); };
   el(input).onchange = e => { const f = e.target.files[0]; e.target.value = ''; upload(f); };
 }

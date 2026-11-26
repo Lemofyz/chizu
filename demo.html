@@ -314,13 +314,10 @@
     <div class="log" id="studyLog"></div>
     <div class="chizumenu" id="chizuMenu" hidden role="menu">
       <button id="mHint" role="menuitem">Hint</button>
-      <button id="mUpload" role="menuitem">Upload a file</button>
-      <button id="mCamera" role="menuitem">Take a photo</button>
-      <button id="mPhotos" role="menuitem">Choose from photos</button>
+      <button id="mUpload" role="menuitem">Photo or file</button>
       <button id="mTired" role="menuitem">I'm tired</button>
-      <input type="file" id="mFile" hidden accept=".pdf,.docx,.txt,.md,application/pdf,text/plain">
-      <input type="file" id="mCam" hidden accept="image/*" capture="environment">
-      <input type="file" id="mPick" hidden accept="image/*">
+      <!-- One picker: phones offer camera, photo library and files on their own. -->
+      <input type="file" id="mFile" hidden accept="image/*,.pdf,.docx,.txt,.md,application/pdf,text/plain">
     </div>
     <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button id="studySend">Send</button></div>
     <span class="meta" id="studyMeta" hidden></span>
@@ -993,6 +990,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=43"></script>
+<script type="module" src="study.js?v=44"></script>
 </body>
 </html>
