@@ -142,8 +142,8 @@
     resume:["Back to it. I'm right here."],
     cheer:["Done. I caught us a fish.","Not bad. That earned a fish."],
     cheer2:["No phone the whole time? Two fish. I'm impressed.","Perfect session. Two fish. Don't let it go to your head."],
-    away:["You picked up your phone. I saw.","Hmph. I'm not looking at you."],
-    back:["…fine. Welcome back. Timer's still waiting.","Took you long enough. Let's finish this."],
+    away:["How dare you slack off. I saw that.","Phone? During focus? Unbelievable.","I was guarding your focus and you just LEFT?"],
+    back:["…fine. I forgive you. Timer's still waiting.","Hmph. Back to work. I'm watching this time."],
     sleepy:["*yawn* It's late. Bed?","My eyes are closing. Yours too."],
     locked:["50 minutes is in the full version. Reserve me?"],
     eat:["Mmm. Acceptable fish.","*munch* …you may bring more.","Fish. My favourite. After the other fish."],
@@ -164,8 +164,8 @@
     unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."]
   };
   // In pajamas she has her own moves and some of her own lines.
-  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_away', hop:'pj_spin', wand:'pj_wand'};
-  const PLAIN = {hop:'spin'};
+  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_spin', wand:'pj_wand'};
+  const PLAIN = {hop:'spin', away:'mad'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
@@ -214,7 +214,7 @@
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
-  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','away','spin','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
+  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','spin','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   async function show(src, loop){
     const next = vids[1 - cur], prev = vids[cur];
