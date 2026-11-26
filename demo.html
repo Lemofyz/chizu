@@ -259,7 +259,7 @@
   <button class="pill" id="playBtn" type="button" title="Feather wand">🪶<span class="lbl"> Play</span></button>
   <button class="pill" id="outfit" type="button">👚</button>
   <button class="pill" id="remBtn" type="button" title="Study reminder">⏰</button>
-  <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
+  <div class="reserve"><a href="index.html#reserve">Free demo until Dec 26 · Reserve the full Chizu</a></div>
 </div>
 <div class="stage">
   <div class="thinkring" aria-hidden="true"></div>
@@ -961,6 +961,15 @@
 
   // iOS pauses page videos in the background and does not resume them; restart whatever she was doing.
   function resumeVideo(){ const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
+  // The free demo runs one month, to the end of December 26 (Pacific time). Afterwards the page says goodbye kindly.
+  const DEMO_END = Date.parse('2026-12-27T08:00:00Z');
+  if (Date.now() > DEMO_END && !/[?&]dev\b/.test(location.search)) {
+    const end = document.createElement('div'); end.className = 'celebrate';
+    end.innerHTML = '<div class="ccard"><div class="cpic"><img src="assets/chizu.jpg" alt="Chizu"></div><div class="ctitle">The demo has ended</div>' +
+      '<p>Thank you for keeping Chizu company this month. She\'s getting ready for the full version.</p>' +
+      '<div class="row"><a class="btnlink" href="index.html#reserve">Reserve your Chizu</a></div></div>';
+    document.body.appendChild(end);
+  }
   // iOS may refuse to start videos until the first touch: any touch wakes her up.
   document.addEventListener('pointerdown', resumeVideo, {passive: true});
   // Safety net: if only her still photo is showing (a clip came in too slowly), start her idle loop again.
