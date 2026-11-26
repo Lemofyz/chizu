@@ -140,6 +140,8 @@
   body.studying .frame .bubble{display:none}
   body.studying #pic{-webkit-mask-image:none;mask-image:none}
   body.studying .bar,body.studying .state,body.studying .reserve{opacity:0;pointer-events:none}
+  /* While studying, only the study-time ring stays on top. */
+  body.studying .top .pill:not(#todayBtn){display:none}
   #studySheet{display:none}
   body.studying #studySheet{display:flex;flex-direction:column;position:fixed;z-index:5;left:50%;transform:translateX(-50%);top:calc(max(12px,env(safe-area-inset-top)) + 64px);bottom:max(16px,env(safe-area-inset-bottom));width:min(640px,94vw);max-height:none;background:transparent;border:0;box-shadow:none;padding:0;pointer-events:none;animation:fadein .4s ease}
   @keyframes fadein{from{opacity:0}to{opacity:1}}
@@ -612,6 +614,17 @@
   window.addEventListener('blur', wentAway);
   window.addEventListener('focus', cameBack);
 
+  // ---------- Studying in the chat counts as study time; every 25 minutes she suggests a short break ----------
+  let studyRun = 0, studyLast = Date.now();
+  setInterval(() => {
+    const now = Date.now(), dt = Math.round((now - studyLast) / 1000); studyLast = now;
+    if (!document.body.classList.contains('studying') || running || isAway() || dt <= 0 || dt > 5) return;
+    st.focusSec += dt; studyRun += dt;
+    if (st.focusSec >= st.goalMin * 60 && st.goalDay !== today()) { st.streak = st.goalDay === yesterday() ? st.streak + 1 : 1; st.goalDay = today(); }
+    if (studyRun >= 25 * 60) { studyRun = 0; window.chizuBreak?.(); }
+    if (st.focusSec % 10 === 0) save();
+  }, 1000);
+
   // ---------- Feeding ----------
   const sheets = [...document.querySelectorAll('.sheet')];
   const openSheet = id => {
@@ -828,6 +841,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=22"></script>
+<script type="module" src="study.js?v=23"></script>
 </body>
 </html>

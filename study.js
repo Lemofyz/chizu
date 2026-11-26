@@ -351,7 +351,7 @@ el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t) return;
   el('studyText').value = ''; el('studyText').blur();  // send closes the keyboard, like ChatGPT
   paused = false;
-  run({ action: 'learn-chat', text: t }, t).then(() => keepGoing());
+  run({ action: 'learn-chat', text: t }, t);  // chatting never triggers an extra question; she may be asking you something
 };
 el('studyText').onkeydown = e => { if (e.key === 'Enter') el('studySend').click(); };
 el('qCheck').onclick = async () => {
@@ -470,6 +470,9 @@ window.chizuSync = async p => {
   const seconds = Math.min(p.sec, Math.floor((ended - started) / 1000) + 1);
   try { await sb.rpc('save_study_session', { p_id: p.id, p_started: p.started, p_ended: ended.toISOString(), p_seconds: seconds, p_skill: null }); } catch (_) {}
 };
+
+// 25 minutes of studying in the chat: a gentle break reminder.
+window.chizuBreak = () => { bubble('her pop', "That's 25 minutes. Stretch, drink some water, then we'll keep going."); act('h_happy'); };
 
 // Small hook for testing the reply rendering in a browser console.
 window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, show: (s, id) => { state = s; sid = id; render(true); } };
