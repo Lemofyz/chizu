@@ -241,10 +241,8 @@
   <p id="statSum"></p>
   <div class="bars" id="bars"></div>
   <div class="row"><button id="shareBtn">Make today's share card</button></div>
-  <div class="sect">Growth · questions answered right, all time</div>
-  <div class="growth" id="growth"><p class="muted">Sign in under 📖 Study to see your growth curve.</p></div>
-  <div class="sect">Library · what you've studied</div>
-  <div class="lib" id="library"><p class="muted">Your topics appear here after your first questions with Chizu.</p></div>
+  <div class="sect">Library and growth</div>
+  <p class="muted"><a href="study/">Open your library, growth curve and cards in Study →</a></p>
 </div>
 
 <div class="sheet tall" id="studySheet" role="dialog" aria-label="Study with Chizu">
@@ -791,6 +789,17 @@
   window.addEventListener('pageshow', () => setTimeout(resumeVideo, 60));
   window.addEventListener('focus', resumeVideo);
 
+  // ---------- Study lives in its own page (1O1's learning app in Chizu mode) ----------
+  const goStudy = () => { location.href = 'study/'; };
+  $('studyBtn').onclick = goStudy;
+  // Swipe up on her main screen to start studying.
+  let swipe = null;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; swipe = {x: t.clientX, y: t.clientY, control: !!e.target.closest('button, input, a, .sheet, .celebrate, .shareview')}; }, {passive: true});
+  document.addEventListener('touchend', e => {
+    if (!swipe) return; const t = e.changedTouches[0], dy = t.clientY - swipe.y, dx = t.clientX - swipe.x, s = swipe; swipe = null;
+    if (dy < -70 && Math.abs(dx) < 60 && !s.control && !document.querySelector('.sheet.open')) goStudy();
+  }, {passive: true});
+
   // ---------- Start ----------
   settleHunger();
   wear(st.outfit, true);
@@ -801,8 +810,6 @@
   }
   render();
 </script>
-<script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=16"></script>
 </body>
 </html>
