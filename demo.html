@@ -216,31 +216,45 @@
   }
   const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','spin','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
-  async function show(src, loop){
+  // The new clip always fades in on top while the old one keeps moving underneath, so moves blend instead of cutting.
+  async function show(src, loop, ms = 350){
     const next = vids[1 - cur], prev = vids[cur];
-    next.onended = null; next.loop = loop; next.src = src; next.currentTime = 0;
+    next.onended = null; next.ontimeupdate = null; next.loop = loop; next.src = src; next.currentTime = 0;
     if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
     try { await next.play(); } catch(_){}
-    // Fade the new clip in first and only then drop the old one, so nothing behind ever shows through.
-    next.classList.add('on'); prev.onended = null;
-    setTimeout(() => { prev.classList.remove('on'); setTimeout(() => { if (!prev.classList.contains('on')) prev.pause(); }, 400); }, 350);
+    prev.onended = null; prev.ontimeupdate = null;
+    next.style.zIndex = 2; prev.style.zIndex = 1;
+    next.style.transitionDuration = ms + 'ms';
+    next.classList.add('on');
+    setTimeout(() => { if (vids[cur] !== prev) { prev.style.transitionDuration = '0ms'; prev.classList.remove('on'); prev.pause(); } }, ms + 60);
     cur = 1 - cur;
     return next;
   }
-  async function playOnce(key){
+  // Plays a clip once; with `early`, hands over that many seconds before the end so the next move can blend in.
+  async function playOnce(key, ms = 350, early = 0){
     const src = await hasClip(key); if (!src) return false;
-    const v = await show(src, false);
-    await new Promise(r => { v.onended = r; setTimeout(r, 8000); });
+    const v = await show(src, false, ms);
+    await new Promise(r => {
+      let done = false; const fin = () => { if (!done) { done = true; v.ontimeupdate = null; r(); } };
+      v.onended = fin; setTimeout(fin, 9000);
+      if (early) v.ontimeupdate = () => { if (v.duration && v.currentTime >= v.duration - early) fin(); };
+    });
     return true;
   }
-  async function act(name){
+  async function act(name, fadeMs = 350){
     const key = st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name);
     const src = key ? await hasClip(key) : null;
     if (src) {
       if (name === 'idle') { rest = 'still'; pic.className = rest; }
       // Start the next clip on the hidden player, then crossfade, so there is never a blank frame.
-      const next = await show(src, name === 'idle');
-      if (name !== 'idle') { busy = true; next.onended = () => { busy = false; act('idle'); }; }
+      const next = await show(src, name === 'idle', fadeMs);
+      if (name !== 'idle') {
+        // Start settling back into her idle loop just before the move ends.
+        busy = true; let done = false;
+        const settle = () => { if (done) return; done = true; next.ontimeupdate = null; next.onended = null; busy = false; act('idle', 800); };
+        next.ontimeupdate = () => { if (next.duration && next.currentTime >= next.duration - 0.8) settle(); };
+        next.onended = settle;
+      }
       return;
     }
     if (name === 'idle') return;
@@ -387,12 +401,12 @@
     if (!quiet) {
       // Someone scoops her up and carries her off; she comes back already changed.
       changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');
-      await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry');
+      await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry', 300);
       st.outfit = o; save(); img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
       outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
       preload(o);
-      await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in');
-      changing = false; busy = false; rest = ''; act('idle');
+      await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in', 250, 0.7);
+      changing = false; busy = false; rest = ''; act('idle', 800);
       return;
     }
     st.outfit = o; save();
