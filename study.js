@@ -135,9 +135,11 @@ function pacer(session, onFrame, onIdle) {
 
 const L = () => state?.learning;
 const inSession = list => list.filter(x => x.session_id === sid);
-function openQuestion() { return inSession(L().questions).find(q => q.status === 'open'); }
+// The question card only shows what belongs to the chosen subject; another folder's unfinished question waits there.
+const inSubject = q => !subject || !q.skill_id || !rootOf(q.skill_id) || rootOf(q.skill_id).id === subject;
+function openQuestion() { return inSession(L().questions).find(q => q.status === 'open' && inSubject(q)); }
 function pendingReview() {
-  return inSession(L().questions).find(q => q.review_card_id && L().attempts.some(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)));
+  return inSession(L().questions).find(q => q.review_card_id && inSubject(q) && L().attempts.some(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)));
 }
 function dueCards() {
   const mine = new Set(inSession(L().questions).map(q => q.id));
@@ -207,6 +209,7 @@ window.chizuLoadProgress = async () => {
 
 function render(full) {
   if (!L()) return;
+  const log = el('studyLog'), pinned = log.scrollTop + log.clientHeight >= log.scrollHeight - 40;
   publishProgress();
   renderFolders();
   if (full) {
@@ -251,6 +254,8 @@ function render(full) {
   const due = L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).length;
   el('studyMeta').textContent = freeLeft() + ' of ' + FREE_DAILY + ' free questions left today';
   window.chizuDue = due;
+  // Scroll last: the question card showing or hiding changes how much room the chat has.
+  if (full || pinned) log.scrollTop = 1e9;
 }
 
 // ---------- Her described actions become animations ----------
@@ -343,7 +348,7 @@ function renderFolders() {
   el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
     el('subjList').hidden = true;
     if (!b.dataset.subj) { setSubject(null); bubble('her pop', 'What do you want to learn next, meow?'); el('studyText').focus(); return; }
-    setSubject(b.dataset.subj); paused = false;
+    setSubject(b.dataset.subj); paused = false; render(false);  // the old subject's card leaves with it
     bubble('her pop', 'Switching to ' + rootOf(b.dataset.subj)?.name + ', meow~'); act('h_nod');
     keepGoing(400);
   });

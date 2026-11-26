@@ -167,6 +167,10 @@
   #studyMain[hidden]{display:none}
   body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
   .avatarSpace{height:116px;flex:none;pointer-events:none}
+  /* Like ChatGPT's orb: the chat runs all the way down behind her, so scrolling slides past her transparently;
+     bottom padding parks the newest bubble just above her head. A question card keeps its own space above her. */
+  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
+  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:128px;margin-bottom:.4rem}
   /* Subject folders: switch what you're studying; cards file themselves under subject and topic. */
   .subjbar{position:absolute;top:-6px;left:0;z-index:3}
   .subjbar > button{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.4rem .8rem;font-weight:700;font-size:.85rem;color:var(--deep);cursor:pointer;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -977,6 +981,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=30"></script>
+<script type="module" src="study.js?v=32"></script>
 </body>
 </html>
