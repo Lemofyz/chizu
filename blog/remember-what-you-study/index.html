@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head>
+<script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https://us.i.posthog.com',person_profiles:'identified_only',disable_session_recording:true});posthog.register({app:'chizu',src:new URLSearchParams(location.search).get('src')||sessionStorage.getItem('chizu_src')||'direct'});</script>
+<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1138992045552088');fbq('track','PageView');</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to actually remember what you study (without making flashcards)</title>
+<meta name="description" content="Why you forget what you studied last week, and the two methods with the strongest research behind them: active recall and spaced repetition. Plus how to use them without building an Anki deck.">
+<link rel="canonical" href="https://chizu.vubeing.com/blog/remember-what-you-study/">
+<meta name="theme-color" content="#fbfefb">
+<link rel="icon" type="image/png" href="/assets/favicon.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta property="og:type" content="article"><meta property="og:site_name" content="Chizu by vubeing"><meta property="og:url" content="https://chizu.vubeing.com/blog/remember-what-you-study/">
+<meta property="og:title" content="How to actually remember what you study (without making flashcards)"><meta property="og:description" content="Why you forget what you studied last week, and the two methods with the strongest research behind them: active recall and spaced repetition. Plus how to use them without building an Anki deck.">
+<meta property="og:image" content="https://chizu.vubeing.com/assets/og.jpg"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://chizu.vubeing.com/assets/og.jpg">
+<link rel="alternate" type="application/rss+xml" title="Chizu blog" href="/blog/feed.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "BlogPosting", "headline": "How to actually remember what you study (without making flashcards)", "description": "Why you forget what you studied last week, and the two methods with the strongest research behind them: active recall and spaced repetition. Plus how to use them without building an Anki deck.", "image": "https://chizu.vubeing.com/assets/chizu_pajama.jpg", "datePublished": "2026-11-26", "dateModified": "2026-11-26", "mainEntityOfPage": "https://chizu.vubeing.com/blog/remember-what-you-study/", "author": {"@type": "Organization", "name": "vubeing", "url": "https://vubeing.com"}, "publisher": {"@type": "Organization", "name": "vubeing", "logo": {"@type": "ImageObject", "url": "https://chizu.vubeing.com/assets/apple-touch-icon.png"}}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is Anki better than other methods?", "acceptedAnswer": {"@type": "Answer", "text": "Anki is a great spaced repetition tool if you keep it up. The method matters more than the app: test yourself and space out reviews. Use whatever you will actually stick with."}}, {"@type": "Question", "name": "How long should I wait between reviews?", "acceptedAnswer": {"@type": "Answer", "text": "A common pattern is about 1 day, then 3 days, then a week, then 3 weeks, shortening the gap whenever you get something wrong."}}, {"@type": "Question", "name": "Does rereading notes work at all?", "acceptedAnswer": {"@type": "Answer", "text": "It helps a little, mostly the first time. After that, closing your notes and recalling the material does much more for the same time."}}]}, {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Chizu", "item": "https://chizu.vubeing.com/"}, {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://chizu.vubeing.com/blog/"}, {"@type": "ListItem", "position": 3, "name": "How to actually remember what you study (without making flashcards)", "item": "https://chizu.vubeing.com/blog/remember-what-you-study/"}]}]</script>
+<style>
+:root{--bg:#fbfefb;--ink:#26222e;--soft:#6c6676;--line:#ece9f1;--tint:#f5f2fb;--lav:#8c74d4;--deep:#3e3352}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--deep);text-underline-offset:3px}a:hover{color:var(--lav)}
+nav{border-bottom:1px solid var(--line)}nav .in{max-width:1100px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:Fraunces,serif;font-size:1.35rem;font-weight:600;color:var(--ink);text-decoration:none}
+nav .links{display:flex;gap:16px;align-items:center;font-weight:700;font-size:.95rem}nav .links a{text-decoration:none}
+.btn{display:inline-block;background:var(--deep);color:#fff!important;border-radius:999px;padding:.7rem 1.2rem;text-decoration:none;font-weight:700;transition:transform .15s ease,background .15s ease}
+.btn:hover{background:var(--lav)}.btn:active{transform:scale(.97)}
+.page{max-width:1100px;margin:0 auto;padding:28px 20px 60px;display:grid;grid-template-columns:minmax(0,1fr);gap:40px}
+@media(min-width:980px){.page{grid-template-columns:minmax(0,720px) 260px;justify-content:space-between}}
+.crumbs{font-size:.85rem;color:var(--soft)}.crumbs a{color:var(--soft)}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:clamp(2rem,5vw,3rem);line-height:1.08;letter-spacing:-.02em;margin:.4rem 0 .6rem}
+.meta{color:var(--soft);font-size:.9rem;margin-bottom:1.2rem}
+.hero{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:22px;background:#fff;border:1px solid var(--line)}
+article h2{font-family:Fraunces,serif;font-weight:600;font-size:1.55rem;line-height:1.2;letter-spacing:-.01em;margin:2.2rem 0 .6rem;scroll-margin-top:20px}
+article p,article li{font-size:1.07rem;line-height:1.7}article li{margin:.35rem 0}
+.cta{display:flex;gap:16px;align-items:center;background:var(--tint);border:1px solid var(--line);border-radius:20px;padding:16px 18px;margin:1.6rem 0}
+.cta img{width:74px;height:74px;border-radius:50%;object-fit:cover;flex:none;background:#fff}
+.cta p{margin:0 0 .6rem;font-size:1rem;line-height:1.5}.cta small{display:block;color:var(--soft);margin-top:.5rem;font-size:.8rem}
+details{border-bottom:1px solid var(--line);padding:.8rem 0}summary{font-weight:700;cursor:pointer;font-size:1.05rem}details p{margin:.5rem 0 0}
+.share{display:flex;gap:10px;flex-wrap:wrap;margin:2rem 0 0;align-items:center;color:var(--soft);font-size:.95rem}
+.share a,.share button{font:inherit;font-weight:700;border:1.5px solid var(--line);background:#fff;color:var(--deep);border-radius:999px;padding:.45rem .9rem;text-decoration:none;cursor:pointer}
+.more{margin-top:2.6rem;border-top:1px solid var(--line);padding-top:1.2rem}.more h2{margin-top:0}
+.cards{display:grid;gap:12px}.card{display:block;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#fff;text-decoration:none}
+.card b{display:block;font-size:1.05rem;color:var(--ink)}.card span{color:var(--soft);font-size:.95rem}
+aside .toc{position:sticky;top:20px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#fff}
+.toc b{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--lav)}.toc ol{margin:.6rem 0 0;padding-left:1.1rem}.toc li{margin:.4rem 0;font-size:.92rem;line-height:1.4}.toc a{text-decoration:none}
+.toc-top{display:block}aside{display:none}@media(min-width:980px){aside{display:block}.toc-top{display:none}}
+.toc-top{margin:0 0 1rem}.toc-top summary{font-size:.95rem}
+footer{border-top:1px solid var(--line);color:var(--soft);font-size:.88rem}footer .in{max-width:1100px;margin:0 auto;padding:18px 20px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+</head><body>
+<nav><div class="in"><a class="brand" href="/">Chizu</a><div class="links"><a href="/blog/">Blog</a><a class="btn" href="/demo.html?src=blog_nav">Try the free demo</a></div></div></nav>
+<div class="page"><main>
+<div class="crumbs"><a href="/">Chizu</a> / <a href="/blog/">Blog</a></div>
+<article>
+<h1>How to actually remember what you study (without making flashcards)</h1>
+<div class="meta">By the vubeing team · November 26, 2026</div>
+<img class="hero" src="/assets/chizu_pajama.jpg" alt="Chizu the plush digital cat wearing pajamas" width="1200" height="750">
+<details class="toc-top"><summary>On this page</summary><ol><li><a href="#why-do-i-forget-what-i-studied-last-week">Why do I forget what I studied last week?</a></li><li><a href="#what-is-active-recall">What is active recall?</a></li><li><a href="#what-is-spaced-repetition">What is spaced repetition?</a></li><li><a href="#why-ask-the-same-idea-a-different-way">Why ask the same idea a different way?</a></li><li><a href="#how-do-i-do-this-without-making-flashcards">How do I do this without making flashcards?</a></li><li><a href="#faq">FAQ</a></li></ol></details>
+<h2 id="why-do-i-forget-what-i-studied-last-week">Why do I forget what I studied last week?</h2>
+<p>Forgetting is normal. In the 1880s, Hermann Ebbinghaus measured how quickly he forgot lists he had memorized, and found most of it went in the first day or two. That shape, now called the <b>forgetting curve</b>, shows up again and again.</p>
+<p>The other problem is how we study. Rereading notes and highlighting feel productive because the material looks familiar. But recognizing something is not the same as being able to recall it on a test.</p>
+<h2 id="what-is-active-recall">What is active recall?</h2>
+<p>Active recall means pulling information out of your head instead of putting it back in. Close the book and answer a question. Explain a concept out loud. Do a practice problem before looking at the worked example.</p>
+<p>It's one of the best-supported study methods. In <a href="https://doi.org/10.1111/j.1467-9280.2006.01693.x" rel="noopener">Roediger and Karpicke's 2006 study</a>, students who practiced recalling a passage remembered much more a week later than students who spent the same time rereading it, even though the rereaders felt more confident.</p>
+<h2 id="what-is-spaced-repetition">What is spaced repetition?</h2>
+<p>Spaced repetition means reviewing something just as you're about to forget it, with the gaps getting longer each time: a day, a few days, a week, a few weeks. A large <a href="https://doi.org/10.1037/0033-2909.132.3.354" rel="noopener">review of hundreds of experiments</a> found that spreading study out beats cramming the same amount of time into one session.</p>
+<p>Put the two together, testing yourself on a schedule, and you have the core of almost every serious memory method.</p>
+<h2 id="why-ask-the-same-idea-a-different-way">Why ask the same idea a different way?</h2>
+<p>If you review with the exact same flashcard every time, you can end up memorizing the card instead of the idea. You know that card 14's answer is "mitochondria" without really understanding why.</p>
+<p>Asking the same concept in a new form (a different example, a word problem instead of a definition, "which of these is <i>not</i>…") checks that you understand the idea itself. If you can answer it three different ways, you probably know it.</p>
+<h2 id="how-do-i-do-this-without-making-flashcards">How do I do this without making flashcards?</h2>
+<p>Anki is powerful, but building and maintaining a deck takes time, and many people quit before the reviews pay off. Some lighter options:</p>
+<ul><li><b>Blank-page review:</b> after class, write everything you remember on a blank page, then check your notes and fill the gaps.</li>
+<li><b>Question-first notes:</b> turn each heading in your notes into a question and cover the answer when you review.</li>
+<li><b>Let something quiz you.</b> This is what <a href="/">Chizu</a> does. Tell her what you're studying and she gives you a few questions to find your level, then rounds of multiple-choice and short written questions. Every idea becomes a card she tracks. If you miss one, it comes back soon. If you get it right, it comes back after 1, 3, 7, then 21 days, asked a different way each time. You never rate how well you remembered; your answers decide.</li></ul>
+<div class="cta"><img src="/assets/chizu.jpg" alt="Chizu the digital cat" loading="lazy"><div>
+<p><b>Meet Chizu.</b> A tiny cat who sits with you while you study, gets grumpy when you pick up your phone, and quizzes you until it sticks.</p>
+<a class="btn" href="/demo.html?src=blog_remember-what-you-study">Try the free demo</a><small>Free, in your browser. Chizu is created with AI.</small></div></div>
+<p>Whatever you use, the rule is the same: test yourself, space it out, and change the question. Pair it with fewer distractions (see <a href="/blog/stop-checking-phone-while-studying/">how to stop checking your phone while studying</a>) and you'll remember far more from the same hours.</p>
+
+<h2 id="faq">FAQ</h2>
+<details><summary>Is Anki better than other methods?</summary><p>Anki is a great spaced repetition tool if you keep it up. The method matters more than the app: test yourself and space out reviews. Use whatever you will actually stick with.</p></details><details><summary>How long should I wait between reviews?</summary><p>A common pattern is about 1 day, then 3 days, then a week, then 3 weeks, shortening the gap whenever you get something wrong.</p></details><details><summary>Does rereading notes work at all?</summary><p>It helps a little, mostly the first time. After that, closing your notes and recalling the material does much more for the same time.</p></details>
+<div class="share">Share: <a href="https://twitter.com/intent/tweet?text=How to actually remember what you study (without making flashcards)&url=https://chizu.vubeing.com/blog/remember-what-you-study/" rel="noopener" target="_blank">X</a><a href="https://www.reddit.com/submit?url=https://chizu.vubeing.com/blog/remember-what-you-study/&title=How to actually remember what you study (without making flashcards)" rel="noopener" target="_blank">Reddit</a><button type="button" data-copy>Copy link</button></div>
+</article>
+<section class="more"><h2>Keep reading</h2><div class="cards"><a class="card" href="/blog/body-doubling-for-studying/"><b>What is body doubling, and does it work for studying?</b><span>Why studying next to someone makes it easier to start, and how to try it alone.</span></a><a class="card" href="/blog/stop-checking-phone-while-studying/"><b>How to stop checking your phone while studying</b><span>Why you keep reaching for it, and the small changes that actually work.</span></a></div></section>
+</main>
+<aside><div class="toc"><b>On this page</b><ol><li><a href="#why-do-i-forget-what-i-studied-last-week">Why do I forget what I studied last week?</a></li><li><a href="#what-is-active-recall">What is active recall?</a></li><li><a href="#what-is-spaced-repetition">What is spaced repetition?</a></li><li><a href="#why-ask-the-same-idea-a-different-way">Why ask the same idea a different way?</a></li><li><a href="#how-do-i-do-this-without-making-flashcards">How do I do this without making flashcards?</a></li><li><a href="#faq">FAQ</a></li></ol></div></aside>
+</div>
+<footer><div class="in"><span>© 2026 vubeing · <a href="/">Chizu</a> · <a href="/blog/">Blog</a></span><span>Chizu is a digital cat created with AI, based on a real cat named Cheese.</span></div></footer>
+<script>document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>{navigator.clipboard?.writeText(location.href.split('?')[0]).then(()=>{b.textContent='Link copied';setTimeout(()=>b.textContent='Copy link',1600)})}));
+document.querySelectorAll('a[href*="demo.html"],a.btn').forEach(a=>a.addEventListener('click',()=>window.posthog?.capture('blog_cta',{href:a.getAttribute('href'),page:location.pathname})));</script>
+</body></html>
