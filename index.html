@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chizu · vubeing</title>
+<meta name="description" content="Chizu is a tiny plush cat who lives on your desk and keeps you company while you study or work. Based on a real cat named Cheese. Reserve your numbered Chizu: the first one is free, each next one costs $1 more.">
+<meta property="og:title" content="Chizu · a tiny cat who keeps you company">
+<meta property="og:description" content="Reserve your numbered Chizu. The first one is free. Every next one costs $1 more.">
+<meta property="og:image" content="assets/chizu_hand.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* One white page, Chizu centred like a product shot; lavender only for actions and her bow. */
+  :root{--bg:#fbfefb;--ink:#26222e;--soft:#6c6676;--line:#ece9f1;--tint:#f5f2fb;--lav:#8c74d4;--deep:#3e3352;--grey:#a9a4b0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:hidden;background:var(--bg);color:var(--ink)}
+  body{font-family:Nunito,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  img,video{display:block;max-width:100%}
+  .wrap{width:min(1080px,92vw);margin:0 auto}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;line-height:1.05;color:var(--deep);text-wrap:balance}
+  h2{font-size:clamp(2rem,4.4vw,3rem);margin:.3rem 0 1rem}
+  .eyebrow{font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--lav);font-weight:700}
+  p.lead{color:var(--soft);font-size:1.08rem;max-width:34rem}
+  nav{border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;justify-content:space-between;align-items:center;height:60px}
+  .brand{font-family:Fraunces,serif;font-size:1.35rem;font-weight:600;color:var(--ink);text-decoration:none}
+  .brand span{color:var(--grey);font-weight:500}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border:0;cursor:pointer;font:700 .95rem Nunito,sans-serif;padding:.8rem 1.4rem;border-radius:999px;background:var(--deep);color:#fff;text-decoration:none;transition:background .2s,transform .2s}
+  .btn:hover{background:var(--lav);transform:translateY(-1px)}
+  .btn.ghost{background:transparent;color:var(--deep);border:1.5px solid var(--line)}
+
+  .hero .wrap{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:center;padding:3.5rem 0 4rem}
+  .hero h1{font-size:clamp(3.4rem,8vw,6rem);margin:.4rem 0 .5rem}
+  .hero .sub{font-family:Fraunces,serif;font-size:clamp(1.2rem,2.2vw,1.5rem);color:var(--deep);margin-bottom:.8rem}
+  .stage{position:relative;justify-self:center;width:min(440px,86vw)}
+  .stage img,.stage video{width:100%;aspect-ratio:1;object-fit:cover;object-position:50% 55%}
+  .tag{width:max-content;margin:.6rem auto 0;background:#fff;border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem;font-size:.82rem;color:var(--soft);white-space:nowrap}
+  .count{display:flex;gap:.8rem;margin:1.4rem 0 1rem;flex-wrap:wrap}
+  .count div{background:var(--tint);border-radius:16px;padding:.7rem 1rem;min-width:8.5rem}
+  .count b{display:block;font-family:Fraunces,serif;font-size:1.8rem;color:var(--deep);line-height:1.1;font-variant-numeric:tabular-nums}
+  .count span{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  @media(max-width:860px){.hero .wrap{grid-template-columns:1fr;text-align:center}.hero p.lead{margin:0 auto}.count,.ctas{justify-content:center}}
+
+  section{padding:5rem 0}
+  .band{background:var(--tint)}
+  .story{display:grid;grid-template-columns:.8fr 1.2fr;gap:3rem;align-items:center}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+  .pair figure{background:#fff;border-radius:18px;overflow:hidden}
+  .pair img{width:100%;aspect-ratio:1;object-fit:cover}
+  .pair figcaption{font-size:.82rem;color:var(--soft);padding:.5rem .8rem}
+  .story p{color:var(--soft);font-size:1.05rem}
+  .story p+p{margin-top:.8rem}
+  @media(max-width:860px){.story{grid-template-columns:1fr}}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.2rem}
+  .card{border:1px solid var(--line);border-radius:20px;padding:1.5rem;background:#fff}
+  .card h3{font-size:1.35rem;margin-bottom:.4rem}
+  .card p{color:var(--soft);font-size:.96rem}
+  @media(max-width:860px){.grid3{grid-template-columns:1fr}}
+
+  .ladder{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start}
+  .steps{display:grid;gap:.5rem}
+  .step{display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:center;border:1px solid var(--line);border-radius:14px;padding:.75rem 1.1rem;background:#fff}
+  .step .no{font-family:Fraunces,serif;font-size:1.25rem;color:var(--deep);font-variant-numeric:tabular-nums}
+  .step .pr{font-weight:700;color:var(--lav);font-variant-numeric:tabular-nums}
+  .step .st{font-size:.85rem;color:var(--soft)}
+  .step.next{border-color:var(--lav);box-shadow:0 0 0 3px #efe9fb}
+  .step.done{opacity:.5}
+  @media(max-width:860px){.ladder{grid-template-columns:1fr}}
+
+  form.res{display:grid;gap:.6rem;margin-top:1.4rem;max-width:26rem}
+  form.res input{font:1rem Nunito,sans-serif;padding:.8rem 1rem;border:1.5px solid var(--line);border-radius:14px;outline:0;background:#fff;color:var(--ink)}
+  form.res input:focus{border-color:var(--lav)}
+  .fine{font-size:.85rem;color:var(--soft);margin-top:.5rem;max-width:30rem}
+  .done-box{display:none;margin-top:1.2rem;background:#fff;border:1px solid var(--line);border-radius:18px;padding:1.2rem;max-width:26rem}
+  .done-box b{font-family:Fraunces,serif;font-size:2rem;color:var(--deep)}
+  @media(max-width:860px){form.res,.done-box,.fine{margin-left:auto;margin-right:auto}}
+
+  details{border-bottom:1px solid var(--line);padding:1.1rem 0}
+  summary{cursor:pointer;list-style:none;font-family:Fraunces,serif;font-size:1.25rem;color:var(--deep);display:flex;justify-content:space-between;gap:1rem}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--lav)}
+  details[open] summary::after{content:"–"}
+  details p{color:var(--soft);margin-top:.5rem}
+  .faq{max-width:760px;margin:2rem auto 0}
+  footer{border-top:1px solid var(--line);padding:2rem 0;color:var(--soft);font-size:.85rem}
+  footer .wrap{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><a class="brand" href="#">vubeing <span>· Chizu</span></a><span style="display:flex;gap:.5rem"><a class="btn ghost" href="demo.html">Free demo</a><a class="btn" href="#reserve">Reserve</a></span></div></nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">New from vubeing</div>
+      <h1>Chizu</h1>
+      <p class="sub">A tiny cat who keeps you company while you work.</p>
+      <p class="lead">Put her on your phone stand or second screen. She breathes, blinks, swishes her tail and sits with you while you study. Tap her and she reacts. Leave to scroll and she notices.</p>
+      <div class="count">
+        <div><span>Reserved so far</span><b data-count>0</b></div>
+        <div><span>Next is No.<em data-nextno style="font-style:normal">0001</em></span><b data-price>Free</b></div>
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap" class="ctas"><a class="btn" href="demo.html">Try the free demo</a><a class="btn ghost" href="#reserve">Reserve the full version</a></div>
+    </div>
+    <div class="stage">
+      <video id="heroVid" poster="assets/chizu.jpg" muted loop playsinline autoplay aria-label="Chizu, a tiny plush cat"></video>
+      <div class="tag">Based on a real cat named Cheese</div>
+    </div>
+  </div>
+</header>
+
+<section class="band">
+  <div class="wrap story">
+    <div class="pair">
+      <figure><img src="assets/real_cheese.jpg" alt="Cheese, the real cat"><figcaption>The real one, Cheese</figcaption></figure>
+      <figure><img src="assets/chizu_hand.jpg" alt="Chizu, the plush version, in a hand"><figcaption>Chizu, palm-sized</figcaption></figure>
+    </div>
+    <div>
+      <div class="eyebrow">Her story</div>
+      <h2>She's real. Sort of.</h2>
+      <p>Cheese is a fluffy grey-and-white cat who lives with us. She sits next to the keyboard every night, judges us when we pick up our phones, and refuses to leave until the work is done.</p>
+      <p>We wanted everyone to have a Cheese. So we made Chizu: same grey ears, same white stripe, same green eyes, small enough to live on your desk.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap center">
+    <div class="eyebrow">What she does</div>
+    <h2>Small, quiet, and on your side.</h2>
+    <div class="grid3" style="text-align:left">
+      <div class="card"><h3>Sits with you</h3><p>Start a focus timer and she settles in beside you. Body doubling, but fluffier.</p></div>
+      <div class="card"><h3>Reacts to you</h3><p>Pat her head, poke her tummy, hold to hug. She has opinions about each.</p></div>
+      <div class="card"><h3>Notices your phone</h3><p>Wander off to scroll and she turns away. Come back and she forgives you, slowly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="reserve" class="band">
+  <div class="wrap ladder">
+    <div>
+      <div class="eyebrow">Reserve the full version</div>
+      <h2>The earlier you come, the less you pay.</h2>
+      <p class="lead">The demo is free forever. The full Chizu adds 50-minute sessions, more moods and reactions, outfits, and a numbered adoption certificate with your name. No.0001 is free. Every Chizu after that costs $1 more than the one before. Your number and your price are locked the moment you reserve.</p>
+      <form class="res" id="res">
+        <input type="email" id="email" name="email" required placeholder="Email" aria-label="Email">
+        <input type="text" id="name" name="name" maxlength="24" placeholder="Name for your certificate (optional)" aria-label="Name for your certificate">
+        <button class="btn" type="submit" id="resBtn"><span>Reserve No.<span data-nextno>0001</span> for <span data-price>Free</span></span></button>
+      </form>
+      <p class="fine">Reserving is free. Checkout opens on <b data-paydate>December 3</b>. We'll email you a link to pay your locked price then. If you change your mind, just don't pay.</p>
+      <div class="done-box" id="done">
+        <div class="eyebrow">You're on the list</div>
+        <b id="doneNo">No.0001</b>
+        <p id="donePrice" style="color:var(--soft)"></p>
+        <p style="color:var(--soft);margin-top:.4rem">Watch your inbox on <span data-paydate>December 3</span>.</p>
+      </div>
+    </div>
+    <div class="steps" id="steps"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="center"><div class="eyebrow">Questions</div><h2>Good to know</h2></div>
+    <div class="faq">
+      <details><summary>What's free and what's in the full version?</summary><p>The free demo lets you pat her, poke her and do 25-minute focus sessions with her. It stays free. The full version is a one-time purchase, no subscription: 50-minute sessions, more moods and reactions, outfits (pajamas first), and a numbered adoption certificate with your name.</p></details>
+      <details><summary>Why does the price go up?</summary><p>To thank the people who believed in her first. No.0001 is free, No.0002 is $1, No.0003 is $2, and so on. Your price never changes after you reserve.</p></details>
+      <details><summary>Is there a real plush?</summary><p>Not yet. If enough people want one, a small physical Chizu is next. Reservation holders hear first.</p></details>
+      <details><summary>Is she AI?</summary><p>The version you're reserving is animated, not a chatbot. If we later add talking and calls, those use AI and we'll say so clearly.</p></details>
+      <details><summary>Who's behind this?</summary><p>vubeing, a small team that makes digital beings. Questions: hello@vubeing.com</p></details>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span>© 2026 vubeing</span><span>Chizu is based on a real cat named Cheese.</span></div></footer>
+
+<script>
+  // Filled in from Codex's Google Form setup (vubeing/lunini-site/chizu_form_ids.txt).
+  const FORM = {action:'https://docs.google.com/forms/d/e/1FAIpQLSf0e8iR-Y9uDjSchTy-pJD9b9oa7A-W0VcIbHu3ZItRmcpOXg/formResponse', email:'entry.1607934200', name:'entry.587635590', source:'entry.591437990'};
+  const CSV  = '';
+  const PAY_DATE = 'December 3';
+  const pad = n => String(n).padStart(4,'0');
+  const priceOf = no => no - 1;
+  const priceLabel = no => priceOf(no) === 0 ? 'Free' : '$' + priceOf(no);
+  let reserved = 0;
+
+  function render(){
+    const next = reserved + 1;
+    document.querySelectorAll('[data-count]').forEach(e => e.textContent = reserved.toLocaleString());
+    document.querySelectorAll('[data-nextno]').forEach(e => e.textContent = pad(next));
+    document.querySelectorAll('[data-price]').forEach(e => e.textContent = priceLabel(next));
+    document.querySelectorAll('[data-paydate]').forEach(e => e.textContent = PAY_DATE);
+    const rows = [];
+    for (const no of [1,2,3,Math.max(4,next-1),next,next+1,next+5,next+20]) if (!rows.includes(no)) rows.push(no);
+    rows.sort((a,b)=>a-b);
+    document.getElementById('steps').innerHTML = rows.map(no =>
+      '<div class="step ' + (no < next ? 'done' : no === next ? 'next' : '') + '"><span class="no">No.' + pad(no) + '</span><span class="st">' +
+      (no < next ? 'reserved' : no === next ? 'could be you' : 'later') + '</span><span class="pr">' + priceLabel(no) + '</span></div>').join('');
+  }
+
+  async function loadCount(){
+    if (!CSV) return render();
+    try {
+      const t = await (await fetch(CSV + (CSV.includes('?') ? '&' : '?') + 't=' + Date.now())).text();
+      // The published sheet holds only one cell: the number of reservations.
+      reserved = Math.max(0, parseInt(t.trim().split(/[\n,]/)[0].replace(/"/g,''), 10) || 0);
+    } catch (_) {}
+    render();
+  }
+
+  document.getElementById('res').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('resBtn'); btn.disabled = true;
+    await loadCount();
+    const no = reserved + 1;
+    if (FORM.action) {
+      const body = new URLSearchParams();
+      body.append(FORM.email, document.getElementById('email').value.trim());
+      body.append(FORM.name, document.getElementById('name').value.trim());
+      body.append(FORM.source, (location.search || 'direct').slice(0, 80));
+      try { await fetch(FORM.action, {method:'POST', mode:'no-cors', body}); } catch (_) {}
+    }
+    document.getElementById('res').style.display = 'none';
+    document.getElementById('doneNo').textContent = 'No.' + pad(no);
+    document.getElementById('donePrice').textContent = 'Your locked price: ' + priceLabel(no) + '.';
+    document.getElementById('done').style.display = 'block';
+    reserved = no; render();
+  });
+
+  // Use her looping video once it exists; the photo stays as the poster until then.
+  const v = document.getElementById('heroVid');
+  fetch('assets/chizu_idle.mp4', {method:'HEAD'}).then(r => { if (r.ok) { v.src = 'assets/chizu_idle.mp4'; v.play().catch(()=>{}); } }).catch(()=>{});
+
+  loadCount();
+</script>
+</body>
+</html>
