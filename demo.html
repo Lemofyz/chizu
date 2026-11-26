@@ -100,6 +100,8 @@
   .qprompt{font-size:.92rem;white-space:pre-wrap}
   .rate button{flex:1;padding:.55rem .3rem}
   .qtag{display:block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--lav);margin-bottom:.3rem}
+  [hidden]{display:none!important}
+  .fback{margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--line);font-size:.9rem;color:var(--ink);white-space:pre-wrap}
   .choices{display:grid;gap:.45rem;margin-top:.6rem}
   .choices:empty{display:none}
   #qTyped[hidden]{display:none}
@@ -158,6 +160,27 @@
   body.studying .frame{pointer-events:auto;cursor:pointer}
   body.studying #studySheet .qcard,body.studying #studyAuth{background:#fff}
   body.studying #studyAuth{margin:auto 0 140px;border:1px solid var(--line);border-radius:18px;padding:1rem}
+  .sect{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin:1.1rem 0 .4rem}
+  .muted{font-size:.8rem;color:var(--soft)}
+  .growth{position:relative}
+  .growth svg{display:block;width:100%;height:150px;overflow:visible}
+  .growth .tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.35rem .55rem;font-size:.75rem;color:var(--ink);box-shadow:0 6px 18px rgba(62,51,82,.12);white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .15s}
+  .lib{display:grid;gap:.4rem}
+  .topic{display:grid;grid-template-columns:1fr auto;gap:.15rem .8rem;border:1px solid var(--line);border-radius:12px;padding:.55rem .7rem}
+  .topic b{font-size:.9rem}
+  .topic span{font-size:.75rem;color:var(--soft);text-align:right}
+  .topic .meter{grid-column:1/-1;height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+  .topic .meter i{display:block;height:100%;border-radius:4px;background:var(--lav)}
+  .celebrate{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:rgba(251,254,251,.82);backdrop-filter:blur(6px)}
+  .celebrate[hidden]{display:none}
+  .ccard{width:min(340px,88vw);background:#fff;border:1px solid var(--line);border-radius:26px;padding:1.2rem 1.2rem 1rem;text-align:center;box-shadow:0 30px 80px rgba(62,51,82,.2);animation:cardin .5s cubic-bezier(.2,1.3,.4,1)}
+  @keyframes cardin{from{transform:translateY(30px) scale(.9);opacity:0}}
+  .cpic{width:180px;height:180px;margin:0 auto;border-radius:50%;overflow:hidden;background:#fefefe;animation:hopin .7s .15s cubic-bezier(.2,1.6,.4,1) both}
+  .cpic img{width:100%;height:100%;object-fit:cover;transform:scale(1.25);transform-origin:50% 45%}
+  @keyframes hopin{0%{transform:translateY(120px) scale(.4);opacity:0}70%{transform:translateY(-10px) scale(1.04);opacity:1}100%{transform:none}}
+  .ctitle{font-family:Fraunces,serif;font-size:1.7rem;color:var(--deep);margin:.7rem 0 .2rem}
+  .ccard p{font-size:.88rem;color:var(--soft)}
+  .ccard .row{justify-content:center}
   @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}}
 </style>
 </head>
@@ -198,12 +221,16 @@
   </div>
 </div>
 
-<div class="sheet" id="statSheet" role="dialog" aria-label="Study log">
+<div class="sheet tall" id="statSheet" role="dialog" aria-label="Your progress" style="overflow:auto">
   <button class="close" data-close>×</button>
-  <h3>Study log</h3>
+  <h3>Your progress</h3>
   <p id="statSum"></p>
   <div class="bars" id="bars"></div>
   <div class="row"><button id="shareBtn">Make today's share card</button></div>
+  <div class="sect">Growth · questions answered right, all time</div>
+  <div class="growth" id="growth"><p class="muted">Sign in under 📖 Study to see your growth curve.</p></div>
+  <div class="sect">Library · what you've studied</div>
+  <div class="lib" id="library"><p class="muted">Your topics appear here after your first questions with Chizu.</p></div>
 </div>
 
 <div class="sheet tall" id="studySheet" role="dialog" aria-label="Study with Chizu">
@@ -216,6 +243,13 @@
   </div>
   <div id="studyMain" hidden>
     <div class="log" id="studyLog"></div>
+    <div class="qcard flash" id="studyFlash" hidden>
+      <span class="qtag" id="fTag">Card</span>
+      <div class="qprompt" id="fFront"></div>
+      <div class="fback" id="fBack" hidden></div>
+      <div class="row" id="fShowRow"><button id="fShow">Show answer</button></div>
+      <div class="row rate" id="fRate" hidden><button data-frate="1">Forgot</button><button data-frate="2">Hard</button><button data-frate="3">Good</button><button data-frate="4">Easy</button></div>
+    </div>
     <div class="qcard" id="studyQ" hidden>
       <div class="qprompt" id="qPrompt"></div>
       <div class="choices" id="qChoices"></div>
@@ -229,6 +263,15 @@
     <div class="avatarSpace" aria-hidden="true"></div>
     <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button class="ghost" id="studyMic" title="Speak" hidden>🎤</button><button id="studySend">Send</button></div>
     <div class="row"><button class="ghost" id="studyQuiz">Quiz me</button><span class="meta" id="studyMeta"></span></div>
+  </div>
+</div>
+
+<div class="celebrate" id="celebrate" hidden>
+  <div class="ccard">
+    <div class="cpic"><img id="cImg" src="assets/chizu.jpg" alt=""></div>
+    <div class="ctitle" id="cTitle">25 minutes, done.</div>
+    <p id="cSub"></p>
+    <div class="row"><button id="cShare">Share it</button><button class="ghost" id="cClose">Keep going</button></div>
   </div>
 </div>
 
@@ -381,11 +424,24 @@
   }
   // In study mode she lives in a small round frame: face close-ups play there, and full-body moves make her pop out bigger.
   const inStudy = () => document.body.classList.contains('studying');
-  const HEADS = ['h_blink', 'h_think', 'h_tilt', 'h_nod', 'h_ears', 'h_happy', 'h_yawn', 'h_surprise', 'h_frown'];
-  const LOOPS = ['idle', 'h_blink', 'h_think'];  // loops never block taps or other moves
-  async function act(name, fadeMs = 350){
+  const HEADS = ['h_blink', 'h_think', 'h_think2', 'h_think3', 'h_tilt', 'h_nod', 'h_ears', 'h_happy', 'h_yawn', 'h_surprise', 'h_frown'];
+  const LOOPS = ['idle', 'h_blink', 'h_think', 'h_think2', 'h_think3'];  // loops never block taps or other moves
+  // While she waits for a reply she cycles through her thinking faces, never the same one twice in a row.
+  let thinkLast = '';
+  window.thinkStart = function thinkStart(){
+    if (!document.body.classList.contains('thinking')) return;
+    const opts = ['h_think', 'h_think2', 'h_think3'].filter(k => k !== thinkLast), k = opts[Math.floor(Math.random() * opts.length)];
+    thinkLast = k;
+    act(k).then(() => { const v = vids[cur]; v.loop = false; v.onended = () => thinkStart(); });
+  };
+  // Moves run one at a time: overlapping switches used to fight over the same video player and garble the picture.
+  let actChain = Promise.resolve();
+  function act(name, fadeMs){ const p = actChain.then(() => actNow(name, fadeMs)); actChain = p.catch(() => {}); return p; }
+  async function actNow(name, fadeMs = 350){
     const pre = st.outfit === 'pj' ? 'pj_' : '';
     if (inStudy() && name === 'idle') name = 'h_blink';
+    // In study mode she stays a small round face: whole-body moves become face expressions.
+    if (inStudy() && !name.startsWith('h_') && !LOOPS.includes(name)) name = name === 'tail' ? 'h_ears' : 'h_happy';
     const head = name.startsWith('h_');
     const key = head ? pre + name : (st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name));
     const pop = inStudy() && !head;
@@ -498,6 +554,7 @@
     left = total; timeEl.textContent = fmt(left); stop('');
     say(perfect ? 'cheer2' : 'cheer'); act('hop'); fxCenter('🐟'); if (perfect) setTimeout(() => fxCenter('🐟'), 300);
     save();
+    setTimeout(() => celebrate(total / 60, perfect), 1200);
   }
   // Leaving during focus: the timer waits, she turns her back, then forgives you.
   // Away = another tab, minimized, or another window in front. The timer stops while you're away.
@@ -606,7 +663,7 @@
     $('bars').innerHTML = days.map(x => '<div class="dbar' + (x.d === today() ? ' today' : '') + '"><span>' + (x.sec ? Math.round(x.sec / 60) : '') + '</span><i style="height:' + Math.max(2, Math.round(x.sec / max * 100)) + '%"></i>' +
       new Date(x.d + 'T12:00').toLocaleDateString(zh ? 'zh-CN' : 'en-US', {weekday: 'short'}) + '</div>').join('');
   }
-  $('todayBtn').onclick = () => { renderLog(); openSheet($('statSheet').classList.contains('open') ? '' : 'statSheet'); };
+  $('todayBtn').onclick = () => { renderLog(); window.chizuLoadProgress?.(); openSheet($('statSheet').classList.contains('open') ? '' : 'statSheet'); };
 
   async function makeCard(){
     await document.fonts.ready;
@@ -635,7 +692,7 @@
     g.fillText('Chizu · lemofyz.github.io/chizu', W / 2, H - 40);
     return c;
   }
-  $('shareBtn').onclick = async () => {
+  async function shareToday(){
     const c = await makeCard();
     const blob = await new Promise(r => c.toBlob(r, 'image/png'));
     const file = new File([blob], 'chizu-study.png', {type: 'image/png'});
@@ -644,7 +701,59 @@
     }
     const url = URL.createObjectURL(blob);
     $('shareImg').src = url; $('shareDl').href = url; $('shareView').hidden = false; openSheet('');
-  };
+  }
+  $('shareBtn').onclick = shareToday;
+
+  // ---------- Session done: she hops into a card with a share prompt ----------
+  function celebrate(min, perfect){
+    $('cImg').src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
+    $('cTitle').textContent = Math.round(min) + ' minutes, done.';
+    $('cSub').textContent = 'Chizu watched you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
+    $('celebrate').hidden = false;
+  }
+  $('cShare').onclick = () => { $('celebrate').hidden = true; shareToday(); };
+  $('cClose').onclick = () => { $('celebrate').hidden = true; };
+
+  // ---------- Growth curve and library (filled in by study.js once signed in) ----------
+  const escHtml = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  const fmtDay = d => new Date(d + 'T12:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+  function renderGrowth(points){
+    const box = $('growth'); if (!points || !points.length) return;
+    const W = 360, H = 150, pl = 28, pr = 34, pt = 12, pb = 22, n = points.length;
+    const max = Math.max(4, ...points.map(p => p.correct));
+    const x = i => pl + (n === 1 ? (W - pl - pr) / 2 : i * (W - pl - pr) / (n - 1));
+    const y = v => pt + (H - pt - pb) * (1 - v / max);
+    const line = points.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.correct).toFixed(1)).join(' ');
+    const last = points[n - 1], ticks = [...new Set([0, Math.round(max / 2), max])];
+    box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Questions answered right over time">' +
+      ticks.map(t => '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="#ece9f1"/><text x="' + (pl - 6) + '" y="' + (y(t) + 3) + '" text-anchor="end" font-size="9" fill="#8a8494">' + t + '</text>').join('') +
+      '<path d="' + line + ' L' + x(n - 1) + ' ' + (H - pb) + ' L' + x(0) + ' ' + (H - pb) + ' Z" fill="#8c74d4" opacity=".1"/>' +
+      '<path d="' + line + '" fill="none" stroke="#8c74d4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + x(n - 1) + '" cy="' + y(last.correct) + '" r="4" fill="#8c74d4" stroke="#fff" stroke-width="2"/>' +
+      '<text x="' + (x(n - 1) + 8) + '" y="' + (y(last.correct) + 3) + '" font-size="10" font-weight="700" fill="#26222e">' + last.correct + '</text>' +
+      '<text x="' + pl + '" y="' + (H - 6) + '" font-size="9" fill="#8a8494">' + fmtDay(points[0].d) + '</text>' +
+      (n > 1 ? '<text x="' + (W - pr) + '" y="' + (H - 6) + '" font-size="9" fill="#8a8494" text-anchor="end">' + fmtDay(last.d) + '</text>' : '') +
+      '<line id="gx" y1="' + pt + '" y2="' + (H - pb) + '" stroke="#8a8494" opacity="0"/><circle id="gdot" r="4" fill="#8c74d4" stroke="#fff" stroke-width="2" opacity="0"/>' +
+      '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="transparent" id="ghit"/></svg><div class="tip" id="gtip"></div>';
+    // Hover / touch: crosshair, dot and a tooltip for the nearest day.
+    const svg = box.querySelector('svg'), tip = $('gtip'), gx = $('gx'), dot = $('gdot');
+    const move = e => {
+      const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+      const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((px - pl) / ((W - pl - pr) / (n - 1))))), p = points[i];
+      gx.setAttribute('x1', x(i)); gx.setAttribute('x2', x(i)); gx.setAttribute('opacity', 1);
+      dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(p.correct)); dot.setAttribute('opacity', 1);
+      tip.innerHTML = '<b>' + fmtDay(p.d) + '</b> · ' + p.correct + ' right of ' + p.answered;
+      tip.style.left = (x(i) * r.width / W) + 'px'; tip.style.top = (y(p.correct) * r.height / H) + 'px'; tip.style.opacity = 1;
+    };
+    const leave = () => { gx.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); tip.style.opacity = 0; };
+    $('ghit').addEventListener('pointermove', move); $('ghit').addEventListener('pointerdown', move); $('ghit').addEventListener('pointerleave', leave);
+  }
+  function renderLibrary(list){
+    if (!list || !list.length) return;
+    $('library').innerHTML = list.map(t => '<div class="topic"><b>' + escHtml(t.name) + '</b><span>' + t.correct + ' of ' + t.answered + ' right' + (t.mastered ? ' · ' + t.mastered + ' mastered' : '') + '</span>' +
+      '<div class="meter"><i style="width:' + Math.round(100 * t.correct / Math.max(1, t.answered)) + '%"></i></div></div>').join('');
+  }
+  window.chizuProgress = p => { renderGrowth(p.growth); renderLibrary(p.library); };
   $('shareClose').onclick = () => { $('shareView').hidden = true; };
 
   // She chats on her own: every minute or so when you're idle, every few minutes during focus.
@@ -674,7 +783,7 @@
   render();
 </script>
 <script src="study-config.js"></script>
-<script src="clip-align.js?v=3"></script>
-<script type="module" src="study.js?v=7"></script>
+<script src="clip-align.js?v=4"></script>
+<script type="module" src="study.js?v=11"></script>
 </body>
 </html>
