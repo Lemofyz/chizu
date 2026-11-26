@@ -1,0 +1,19 @@
+# Chizu
+
+> Chizu is a plush digital cat made by vubeing, based on a real cat named Cheese. She keeps you company on your screen while you study, turns her back when you pick up your phone, and quizzes you on what you are learning. Created with AI.
+
+## What she does
+- Sits on your phone or second screen while you study: breathes, blinks, reacts when you tap her.
+- Focus timer: if you leave to scroll your phone, she notices and gets grumpy.
+- Study chat: tell her what you are studying; she gives three placement questions, then rounds of multiple-choice and short written questions at your level.
+- Every concept becomes a card. Missed ones come back days later, asked a different way, until you know them. No "how well did you remember" self-rating: mastery comes from your answers.
+- Outfits (like pajamas) are sold separately.
+
+## Pricing
+- Free demo: https://chizu.vubeing.com/demo.html
+- The full Chizu is a one-time purchase, yours for life, no subscription. Spot #1 is free and each early spot costs $1 more than the one before. Full refund anytime before launch.
+
+## Links
+- Home: https://chizu.vubeing.com/
+- Demo: https://chizu.vubeing.com/demo.html
+- Maker: vubeing (https://vubeing.com), hello@vubeing.com

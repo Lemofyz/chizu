@@ -10,7 +10,21 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#fbfefb">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Chizu · free demo</title>
+<title>Chizu demo: study with a tiny cat who keeps you focused</title>
+<meta name="description" content="Try Chizu free: pat her, focus with her, and tell her what you are studying. She quizzes you, brings back what you got wrong, and gets grumpy when you pick up your phone.">
+<link rel="canonical" href="https://chizu.vubeing.com/demo.html">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="vubeing">
+<meta property="og:url" content="https://chizu.vubeing.com/demo.html">
+<meta property="og:title" content="Try Chizu free: a tiny cat who keeps you company while you study">
+<meta property="og:description" content="Pat her, focus with her, and let her quiz you. Free demo.">
+<meta property="og:image" content="https://chizu.vubeing.com/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://chizu.vubeing.com/assets/og.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-stream-markdown@0.4.0/src/style.css">
@@ -263,9 +277,11 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     .msg.pop,.qcard.enter,.subjlist:not([hidden]),.ccard,.cpic,.chizumenu button{animation:fadeonly .2s ease both}
     .sheet{transition:none}#todayBtn.pop,.choices button.right{animation:none}}
   @keyframes fadeonly{from{opacity:0}}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
+<h1 class="sr-only">Chizu demo: study with a tiny cat who keeps you focused</h1>
 <div class="top">
   <button class="pill" id="todayBtn" type="button" title="Your progress"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></button>
   <button class="pill" id="studyBtn" type="button" title="Study">📖<span class="lbl"> Study</span></button>

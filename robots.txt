@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /_phoneprev.html
+
+Sitemap: https://chizu.vubeing.com/sitemap.xml
