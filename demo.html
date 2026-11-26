@@ -291,8 +291,7 @@
 
 <div class="shareview" id="shareView" hidden>
   <img id="shareImg" alt="Your study card">
-  <p>Long-press the image to save it, then post it anywhere.</p>
-  <div class="row"><a class="btnlink" id="shareDl" download="chizu-study.png">Download</a><button class="ghost" id="shareClose">Close</button></div>
+  <div class="row"><button id="shareSave">Save / Share</button><a class="btnlink ghostlink" id="shareDl" download="chizu-study.png" hidden>Download</a><button class="ghost" id="shareClose">Close</button></div>
 </div>
 
 <div class="sheet" id="remSheet" role="dialog" aria-label="Study reminder">
@@ -709,13 +708,11 @@
     g.fillText('Chizu · lemofyz.github.io/chizu', W / 2, H - 40);
     return c;
   }
+  let shareFile = null;
   async function shareToday(){
     const c = await makeCard();
     const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-    const file = new File([blob], 'chizu-study.png', {type: 'image/png'});
-    if (navigator.canShare && navigator.canShare({files: [file]})) {
-      try { await navigator.share({files: [file]}); return; } catch(_) {}
-    }
+    shareFile = new File([blob], 'chizu-study.png', {type: 'image/png'});
     const url = URL.createObjectURL(blob);
     $('shareImg').src = url; $('shareDl').href = url; $('shareView').hidden = false; openSheet('');
   }
@@ -772,6 +769,11 @@
   }
   window.chizuProgress = p => { renderGrowth(p.growth); renderLibrary(p.library); };
   $('shareClose').onclick = () => { $('shareView').hidden = true; };
+  // Only when tapped: phones open the system sheet (Save Image, Messages...), computers download the PNG.
+  $('shareSave').onclick = async () => {
+    if (shareFile && navigator.canShare && navigator.canShare({files: [shareFile]})) { try { await navigator.share({files: [shareFile]}); return; } catch(_) { return; } }
+    $('shareDl').click();
+  };
 
   // She chats on her own: every minute or so when you're idle, every few minutes during focus.
   let quietUntil = Date.now() + 40000;
