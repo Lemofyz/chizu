@@ -440,7 +440,10 @@
     return clip[name];
   }
   const loadQueue = keys => keys.forEach(hasClip);
-  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','run','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in', ...HEADS.map(h => (o === 'pj' ? 'pj_' : '') + h)].forEach(hasClip);
+  // Her idle loop first, alone: on a phone it must not wait behind twenty other clips. The rest then load one at a time
+  // (a tap on a move that isn't loaded yet fetches that clip at once). Face close-ups load when study opens.
+  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['pat','tail','sleepy','mad','run','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in']
+    .reduce((chain, k) => chain.then(() => hasClip(k)), hasClip(o === 'pj' ? 'pj_idle' : 'idle'));
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   // The new clip always fades in on top while the old one keeps moving underneath, so moves blend instead of cutting.
   let curKey = '';
@@ -958,6 +961,10 @@
 
   // iOS pauses page videos in the background and does not resume them; restart whatever she was doing.
   function resumeVideo(){ const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
+  // iOS may refuse to start videos until the first touch: any touch wakes her up.
+  document.addEventListener('pointerdown', resumeVideo, {passive: true});
+  // Safety net: if only her still photo is showing (a clip came in too slowly), start her idle loop again.
+  setInterval(() => { if (!document.hidden && !busy && !changing && !vids.some(v => v.classList.contains('on'))) act('idle'); }, 3000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(resumeVideo, 60); });
   window.addEventListener('pageshow', () => setTimeout(resumeVideo, 60));
   window.addEventListener('focus', resumeVideo);
