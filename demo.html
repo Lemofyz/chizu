@@ -13,7 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
 <style>
   /* Desk companion: Chizu sits in the middle of a white screen. Status pills on top, focus bar at the bottom. */
-  :root{--bg:#fbfefb;--ink:#26222e;--deep:#3e3352;--lav:#8c74d4;--soft:#6c6676;--line:#ece9f1;--tint:#f1edfa;--glass:rgba(255,255,255,.88)}
+  :root{--bg:#fbfefb;--ink:#26222e;--deep:#3e3352;--lav:#8c74d4;--soft:#6c6676;--line:#ece9f1;--tint:#f1edfa;--glass:rgba(255,255,255,.88);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);--ease-in-out:cubic-bezier(0.77,0,0.175,1);--ease-drawer:cubic-bezier(0.32,0.72,0,1);--spring:cubic-bezier(.2,.9,.25,1.12)}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
   button{font:inherit;color:inherit}
@@ -57,7 +58,10 @@
   .ring{width:18px;height:18px;flex:none}
   .ring circle{fill:none;stroke-width:3}
   .ring .bg{stroke:var(--line)}
-  .ring .fg{stroke:var(--lav);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .6s}
+  .ring .fg{stroke:var(--lav);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .6s var(--ease-out),stroke .3s ease}
+  #todayBtn.met .ring .fg{stroke:#5fb37a}
+  #todayBtn.pop{animation:ringdone .45s var(--spring)}
+  @keyframes ringdone{40%{transform:scale(1.12)}}
   .hearts{letter-spacing:-.05em;color:var(--lav)}
   .reserve{flex-basis:100%;text-align:center;font-size:.75rem;margin-top:.1rem}
   @media (max-width:560px){.pill .lbl{display:none}.top{gap:.3rem;padding:0 8px}.pill{padding:.32rem .55rem}.ring{width:16px;height:16px}}
@@ -71,7 +75,7 @@
   .bar button.go{background:var(--deep);color:#fff;padding:.6rem 1.15rem}
   .state{position:fixed;z-index:3;left:0;right:0;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 70px);text-align:center;font-size:.8rem;color:var(--soft);transition:opacity .6s;pointer-events:none}
 
-  .sheet{position:fixed;z-index:5;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,120%);width:min(420px,calc(100vw - 24px));background:#fff;border:1px solid var(--line);border-radius:22px;padding:1.1rem 1.1rem 1rem;box-shadow:0 20px 60px rgba(62,51,82,.18);transition:transform .3s ease}
+  .sheet{position:fixed;z-index:5;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,120%);width:min(420px,calc(100vw - 24px));background:#fff;border:1px solid var(--line);border-radius:22px;padding:1.1rem 1.1rem 1rem;box-shadow:0 20px 60px rgba(62,51,82,.18);transition:transform .35s var(--ease-drawer)}
   .sheet.open{transform:translate(-50%,0)}
   .sheet h3{font-family:Fraunces,serif;font-size:1.2rem;color:var(--deep);margin-bottom:.2rem}
   .sheet p{font-size:.85rem;color:var(--soft)}
@@ -96,8 +100,8 @@
   .msg.me{align-self:flex-end;background:var(--deep);color:#fff}
   .act{color:#9a94a3;font-style:italic}
   /* Her replies pop up out of her head. */
-  .msg.pop{transform-origin:50% 100%;animation:popup .45s cubic-bezier(.2,1.4,.4,1)}
-  @keyframes popup{0%{opacity:0;transform:translateY(80px) scale(.2)}100%{opacity:1;transform:none}}
+  .msg.pop{transform-origin:0% 100%;animation:popup .2s var(--ease-out)}
+  @keyframes popup{from{opacity:0;transform:translateY(8px) scale(.96)}}
   .msg.her{align-self:flex-start;background:#ebe4fb;border:1px solid #ddd2f6;color:var(--ink)}
   .msg.err{align-self:flex-start;background:#fff4f0;color:#8a3b22}
   .qcard{border:1px solid var(--line);border-radius:14px;padding:.7rem .8rem;margin-top:.5rem;user-select:text;-webkit-user-select:text}
@@ -115,7 +119,17 @@
   .choices:empty{display:none}
   #qTyped[hidden]{display:none}
   .choices button{text-align:left;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:.6rem .8rem;font-weight:600;font-size:.92rem;cursor:pointer}
-  .choices button:hover{border-color:var(--lav);background:var(--tint)}
+  @media (hover:hover) and (pointer:fine){.choices button:hover{border-color:var(--lav);background:var(--tint)}.subjlist button:hover{background:var(--tint)}}
+  /* The option you tapped lights up, then turns green or soft red with her verdict. */
+  .choices button{transition:transform .16s var(--ease-out),background-color .2s ease,border-color .2s ease}
+  .choices button.picked{border-color:var(--lav);background:var(--tint)}
+  .choices button.right{border-color:#5fb37a;background:#eaf7ee;animation:okpop .3s var(--spring)}
+  .choices button.wrong{border-color:#e6a3a3;background:#fdf1f1}
+  .choices button.right b{color:#3f8f5a}.choices button.wrong b{color:#c46a6a}
+  @keyframes okpop{50%{transform:scale(1.02)}}
+  /* A new question card rises in instead of appearing at once. */
+  .qcard.enter{animation:qin .2s var(--ease-out)}
+  @keyframes qin{from{opacity:0;transform:translateY(8px)}}
   .choices button b{color:var(--lav);margin-right:.4rem}
   .meta{font-size:.75rem;color:var(--soft);margin-left:auto;text-align:right}
   .bars{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;align-items:end;height:140px;margin-top:.8rem}
@@ -127,10 +141,10 @@
   .shareview img{max-height:72vh;max-width:100%;border-radius:18px;box-shadow:0 20px 60px rgba(62,51,82,.18)}
   .btnlink{border-radius:999px;padding:.6rem 1rem;font-weight:700;background:var(--deep);color:#fff;text-decoration:none}
   /* Study mode: Chizu shrinks into a living round avatar above the input, chat opens above her. */
-  .frame{transition:width .55s cubic-bezier(.2,.8,.2,1),border-radius .55s,box-shadow .55s}
-  .frame img{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
-  .frame video{transition:opacity .35s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
-  .stage{transition:padding .55s cubic-bezier(.2,.8,.2,1)}
+  /* Going in and out of study glides with transform (glide in openSheet); width only eases for her short pop-out moves. */
+  .frame{transition:width .35s var(--ease-out),border-radius .35s var(--ease-out),box-shadow .35s var(--ease-out)}
+  .frame img{transition:transform .35s var(--ease-out)}
+  .frame video{transition:opacity .35s ease,transform .35s var(--ease-out)}
   body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 66px)}
   body.studying .frame{width:108px;border-radius:50%;overflow:hidden;box-shadow:0 10px 30px rgba(62,51,82,.18);background:#fefefe;z-index:6}
   body.studying .frame img,body.studying .frame video{transform:scale(1.85);transform-origin:50% 34%}
@@ -158,21 +172,23 @@
   .subjbar > button{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.4rem .8rem;font-weight:700;font-size:.85rem;color:var(--deep);cursor:pointer;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .subjlist{margin-top:.4rem;display:grid;gap:.3rem;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:.4rem;box-shadow:0 12px 32px rgba(62,51,82,.16)}
   .subjlist button{display:flex;justify-content:space-between;gap:.8rem;border:0;border-radius:12px;padding:.5rem .7rem;background:transparent;color:var(--ink);font-weight:700;font-size:.85rem;cursor:pointer;text-align:left}
-  .subjlist button:hover,.subjlist button.on{background:var(--tint)}
+  .subjlist button.on{background:var(--tint)}
+  /* The subject list opens out of its button. */
+  .subjlist:not([hidden]){transform-origin:0 0;animation:dropin .15s var(--ease-out)}
+  @keyframes dropin{from{opacity:0;transform:translateY(-4px) scale(.96)}}
   .subjlist small{font-weight:600;color:var(--soft)}
   .folder{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lav);margin:.6rem 0 .1rem}
   /* Tapping her small head opens this menu just above her. */
   /* Her menu: separate little speech bubbles that pop out of her upper right, nearest first. */
   .chizumenu{position:fixed;z-index:7;left:min(calc(50% + 42px),calc(100vw - 196px));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 154px);display:flex;flex-direction:column;align-items:flex-start;gap:.4rem}
   .chizumenu button{border:1px solid var(--line);border-radius:18px 18px 18px 6px;padding:.5rem .95rem;font-weight:700;font-size:.85rem;background:#fff;color:var(--deep);cursor:pointer;white-space:nowrap;
-    box-shadow:0 8px 22px rgba(62,51,82,.14);transform-origin:0% 100%;animation:bubblein .34s cubic-bezier(.2,1.5,.4,1) both}
+    box-shadow:0 8px 22px rgba(62,51,82,.14);transform-origin:0% 100%;animation:bubblein .2s var(--ease-out) backwards}
   .chizumenu button:nth-last-of-type(1){animation-delay:0ms}
-  .chizumenu button:nth-last-of-type(2){animation-delay:70ms}
-  .chizumenu button:nth-last-of-type(3){animation-delay:140ms}
-  .chizumenu button:nth-last-of-type(4){animation-delay:210ms}
-  .chizumenu button:nth-last-of-type(5){animation-delay:280ms}
-  @keyframes bubblein{from{opacity:0;transform:translate(-16px,18px) scale(.3)}}
-  @media (prefers-reduced-motion:reduce){.chizumenu button{animation:none}}
+  .chizumenu button:nth-last-of-type(2){animation-delay:40ms}
+  .chizumenu button:nth-last-of-type(3){animation-delay:80ms}
+  .chizumenu button:nth-last-of-type(4){animation-delay:120ms}
+  .chizumenu button:nth-last-of-type(5){animation-delay:160ms}
+  @keyframes bubblein{from{opacity:0;transform:translate(-6px,8px) scale(.9)}}
   .chizumenu button:disabled{opacity:.5}
   body.studying.dropping .log{outline:2px dashed var(--lav);outline-offset:-6px;border-radius:16px}
   /* Like ChatGPT's orb: with no question card open the chat runs all the way down and she simply floats over it. */
@@ -210,15 +226,21 @@
   .topic .meter i{display:block;height:100%;border-radius:4px;background:var(--lav)}
   .celebrate{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:rgba(251,254,251,.82);backdrop-filter:blur(6px)}
   .celebrate[hidden]{display:none}
-  .ccard{width:min(340px,88vw);background:#fff;border:1px solid var(--line);border-radius:26px;padding:1.2rem 1.2rem 1rem;text-align:center;box-shadow:0 30px 80px rgba(62,51,82,.2);animation:cardin .5s cubic-bezier(.2,1.3,.4,1)}
+  .ccard{width:min(340px,88vw);background:#fff;border:1px solid var(--line);border-radius:26px;padding:1.2rem 1.2rem 1rem;text-align:center;box-shadow:0 30px 80px rgba(62,51,82,.2);animation:cardin .4s var(--spring)}
   @keyframes cardin{from{transform:translateY(30px) scale(.9);opacity:0}}
-  .cpic{width:180px;height:180px;margin:0 auto;border-radius:50%;overflow:hidden;background:#fefefe;animation:hopin .7s .15s cubic-bezier(.2,1.6,.4,1) both}
+  .cpic{width:180px;height:180px;margin:0 auto;border-radius:50%;overflow:hidden;background:#fefefe;animation:hopin .5s .12s var(--spring) both}
   .cpic img{width:100%;height:100%;object-fit:cover;transform:scale(1.25);transform-origin:50% 45%}
-  @keyframes hopin{0%{transform:translateY(120px) scale(.4);opacity:0}70%{transform:translateY(-10px) scale(1.04);opacity:1}100%{transform:none}}
+  @keyframes hopin{0%{transform:translateY(40px) scale(.9);opacity:0}70%{transform:translateY(-6px) scale(1.03);opacity:1}100%{transform:none}}
   .ctitle{font-family:Fraunces,serif;font-size:1.7rem;color:var(--deep);margin:.7rem 0 .2rem}
   .ccard p{font-size:.88rem;color:var(--soft)}
   .ccard .row{justify-content:center}
-  @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}}
+  /* Every button gives a little under your finger. */
+  button{transition:transform .16s var(--ease-out)}
+  button:active:not(:disabled){transform:scale(.97)}
+  @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}
+    .msg.pop,.qcard.enter,.subjlist:not([hidden]),.ccard,.cpic,.chizumenu button{animation:fadeonly .2s ease both}
+    .sheet{transition:none}#todayBtn.pop,.choices button.right{animation:none}}
+  @keyframes fadeonly{from{opacity:0}}
 </style>
 </head>
 <body>
@@ -409,6 +431,7 @@
     const min = Math.floor(st.focusSec / 60), goal = st.goalMin;
     $('today').innerHTML = min + '/' + goal + '<span class="lbl"> min</span>';
     $('ring').style.strokeDashoffset = 47.1 * (1 - Math.min(1, st.focusSec / (goal * 60)));
+    $('todayBtn').classList.toggle('met', st.focusSec >= goal * 60);
     $('streak').textContent = st.streak > 0 ? ' · 🔥 ' + st.streak : '';
     $('fishN').textContent = st.fish; $('fishN2').textContent = st.fish;
     $('hearts').textContent = '♥'.repeat(st.full) + '♡'.repeat(3 - st.full);
@@ -595,6 +618,7 @@
     timeEl.textContent = fmt(left);
     if (st.focusSec >= st.goalMin * 60 && st.goalDay !== today()) {
       st.streak = st.goalDay === yesterday() ? st.streak + 1 : 1; st.goalDay = today();
+      const tb = $('todayBtn'); tb.classList.remove('pop'); void tb.offsetWidth; tb.classList.add('pop');
       setTimeout(() => say('goal'), 3600);
     }
     if (!saidHalf && left <= total / 2) { saidHalf = true; say('half'); }
@@ -634,7 +658,7 @@
   // Going into study is easy (260px, a third of the way); leaving needs a long, deliberate push (380px, 60%),
   // so scrolling to read an answer never throws you out.
   const DRAG_IN = 260, DRAG_OUT = 380, COMMIT_IN = .33, COMMIT_OUT = .6;
-  const SPRING = 'cubic-bezier(.2,.9,.25,1.12)';
+  const SPRING = 'var(--spring)';
   let drag = null, lastMove = 0;
   function smallRect(){ const s = 108, bottom = Math.max(16, safeBottom) + 66; return {cx: innerWidth / 2, cy: innerHeight - bottom - s / 2, size: s}; }
   function bigRect(){ const s = Math.min(innerWidth * .92, innerHeight * .62); return {cx: innerWidth / 2, cy: innerHeight / 2, size: s}; }
@@ -662,11 +686,11 @@
       return;
     }
     // Far enough: glide the rest of the way, then switch layouts with transitions off so nothing jumps.
-    applyDrag(1, d, 'transform .3s cubic-bezier(.32,.72,0,1), border-radius .3s ease');
+    applyDrag(1, d, 'transform .3s var(--ease-drawer), border-radius .3s ease');
     setTimeout(() => {
       document.body.classList.remove('growing');
       frame.style.transition = 'none'; img.style.transition = 'none'; reset();
-      if (d.toStudy) $('studyBtn').click(); else openSheet('');
+      noGlide = true; try { if (d.toStudy) $('studyBtn').click(); else openSheet(''); } finally { noGlide = false; }
       requestAnimationFrame(() => requestAnimationFrame(() => { frame.style.transition = ''; img.style.transition = ''; }));
     }, 300);
   }
@@ -713,9 +737,28 @@
 
   // ---------- Feeding ----------
   const sheets = [...document.querySelectorAll('.sheet')];
+  let noGlide = false, gliding = false;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const openSheet = id => {
-    sheets.forEach(s => s.classList.toggle('open', s.id === id));
     const was = inStudy(), now = id === 'studySheet';
+    // In or out of study by button: glide her frame with transform only (no layout animation), then switch layouts in one frame.
+    if (was !== now && !noGlide && !reduceMotion.matches && !document.hidden) {
+      if (gliding) return; gliding = true;
+      const d = {toStudy: now, from: rectOf(frame), to: now ? smallRect() : bigRect()};
+      if (!now) { document.body.classList.add('growing'); $('studySheet').style.transition = 'opacity .25s ease'; }
+      applyDrag(1, d, 'transform .4s var(--ease-drawer), border-radius .4s var(--ease-drawer)');
+      setTimeout(() => {
+        document.body.classList.remove('growing');
+        frame.style.transition = 'none'; img.style.transition = 'none';
+        frame.style.transform = ''; frame.style.borderRadius = ''; img.style.transform = '';
+        $('studySheet').style.opacity = ''; $('studySheet').style.transition = ''; vids.forEach(v => { v.style.opacity = ''; });
+        gliding = false; noGlide = true; try { openSheet(id); } finally { noGlide = false; }
+        if (now) $('studyLog').scrollTop = 1e9;
+        requestAnimationFrame(() => requestAnimationFrame(() => { frame.style.transition = ''; img.style.transition = ''; }));
+      }, 400);
+      return;
+    }
+    sheets.forEach(s => s.classList.toggle('open', s.id === id));
     document.body.classList.toggle('studying', now);
     if (!now) {
       document.body.classList.remove('thinking');
@@ -934,6 +977,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=29"></script>
+<script type="module" src="study.js?v=30"></script>
 </body>
 </html>

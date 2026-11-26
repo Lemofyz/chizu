@@ -220,7 +220,10 @@ function render(full) {
     for (const m of msgs) { if (m.question_id && flashQ.has(m.question_id)) continue; m.role === 'user' ? bubble('me', said(m.content)) : staticMd('her', speech(m.content)); }
     el('studyLog').scrollTop = 1e9;
   }
-  const q = openQuestion(), rv = !q && pendingReview();
+  const q = holdQ || openQuestion(), rv = !q && pendingReview();
+  const card = el('studyQ');
+  if (q && q.id !== card.dataset.q) { card.dataset.q = q.id; card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter'); }
+  if (!q) card.dataset.q = '';
   if (flashing && (q || rv)) { flashing = null; el('studyFlash').hidden = true; }
   el('studyQ').hidden = !q;
   if (q) {
@@ -235,7 +238,8 @@ function render(full) {
     if (opts.length >= 2) {
       opts.forEach((m, i) => {
         const b = document.createElement('button'); b.innerHTML = '<b>' + m[1] + '</b>' + fmt(m[2]);
-        b.onclick = () => { if (!sending) answer(q, String(i + 1), m[1] + ') ' + m[2]); };
+        if (pick?.id === q.id && pick.i === i) b.classList.add(pick.ok == null ? 'picked' : pick.ok ? 'right' : 'wrong');
+        b.onclick = () => { if (sending || pick?.id === q.id) return; pick = {id: q.id, i, ok: null}; holdQ = q; b.classList.add('picked'); answer(q, String(i + 1), m[1] + ') ' + m[2]); };
         box.appendChild(b);
       });
       math(box);
@@ -301,9 +305,18 @@ async function run(body, userText, quiet = false) {
     if (/free questions/.test(e.message)) { say('treat'); }
   } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); if (waited) act('idle'); }
 }
+// A hint about the open question, in the question's own language: the idea only, never the answer.
+function askHint(q, label) {
+  const zh = /[\u4e00-\u9fff]/.test(q.prompt);
+  const text = zh ? '我没看懂这道题。用中文给我一个小提示：只点出思路或第一步，不要说出答案，也不要换题。题目：\n' + q.prompt
+    : "I don't get this question. Give me a small hint: just the idea or the first step, never the answer, and don't change the question. Question:\n" + q.prompt;
+  return run({ action: 'learn-chat', text }, label || (zh ? '没看懂，给个提示' : "I don't get it."));
+}
 function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
 // "I'm tired" pauses the automatic questions until you say something again.
 let paused = false;
+// The option you tapped, and the answered question kept on screen for a moment to show her verdict.
+let pick = null, holdQ = null;
 // ---------- Subject folders ----------
 // Each top-level skill is a folder (e.g. Calculus); cards sit under topics inside it. The backend files them automatically.
 let subject = localStorage.getItem('chizu_subject') || null, lastNewest = null;
@@ -367,12 +380,14 @@ el('qCheck').onclick = async () => {
 // After an answer and its explanation, the next question comes by itself (a short pause to read first).
 async function answer(q, value, label) {
   const reply = await run({ action: 'learn-answer', questionId: q.id, answer: value }, label);
-  if (!reply) return;
-  if (/Correct|对啦/.test(reply)) fxCenter('✨');
+  if (!reply) { pick = null; holdQ = null; render(false); return; }
+  const ok = /Correct|对啦/.test(reply);
+  if (pick?.id === q.id) { pick.ok = ok; render(false); setTimeout(() => { if (holdQ === q) { holdQ = null; render(false); } }, 900); }
+  if (ok) fxCenter('✨');
   keepGoing();
 }
 el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
-el('qLost').onclick = () => run({ action: 'learn-chat', text: "I didn't get it. Can you explain it another way?" }, "I don't get it.");
+el('qLost').onclick = () => { const q = openQuestion(); if (q) askHint(q); };
 document.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => {
   const q = pendingReview(); if (!q) return;
   const at = L().attempts.filter(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)).at(-1);
@@ -415,7 +430,7 @@ let nudged = null;
 el('mHint').onclick = () => {
   closeMenu(); const q = openQuestion(); if (!q) return;
   if (nudged !== q.id) { nudged = q.id; bubble('her pop', 'Have a guess first, meow. Wrong is fine, it turns into a card to practise.'); act('h_tilt'); return; }
-  run({ action: 'learn-chat', text: 'Give me a small hint for this question, without telling me the answer.' }, 'Hint, please.');
+  askHint(q, /[\u4e00-\u9fff]/.test(q.prompt) ? '给个提示' : 'Hint, please.');
 };
 el('mTired').onclick = () => { closeMenu(); paused = true; run({ action: 'learn-chat', text: "I'm tired." }, "I'm tired."); };
 // Upload: from her menu, or drop a file anywhere on the study screen (same as 1O1's upload: PDF, Word, images, text, up to 8MB).
