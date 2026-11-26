@@ -210,11 +210,13 @@ function render(full) {
   publishProgress();
   if (full) {
     el('studyLog').innerHTML = '';
-    const msgs = inSession(L().messages).slice(-12);
+    const msgs = inSession(L().messages).filter(m => !(m.role === 'user' && m.content === '(flashcard)')).slice(-16);
     if (!msgs.length) bubble('her', "Hi. What are we studying today? Tell me the subject, or tap Quiz me.");
     // Instructions the page sends on your behalf show as the button you pressed.
     const said = t => /^Give me one new question on what I have been studying/.test(t) ? 'Quiz me.' : /^Give me one practice question on what I just forgot/.test(t) ? 'Practice what I forgot' : t;
-    for (const m of msgs) m.role === 'user' ? bubble('me', said(m.content)) : staticMd('her', speech(m.content));
+    // Flashcard self-ratings are stored as an answer and its notes; they are not part of the conversation.
+    const flashQ = new Set(L().messages.filter(m => m.role === 'user' && m.content === '(flashcard)').map(m => m.question_id));
+    for (const m of msgs) { if (m.question_id && flashQ.has(m.question_id)) continue; m.role === 'user' ? bubble('me', said(m.content)) : staticMd('her', speech(m.content)); }
     el('studyLog').scrollTop = 1e9;
   }
   const q = openQuestion(), rv = !q && pendingReview();
@@ -298,13 +300,14 @@ function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLo
 
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t) return;
-  el('studyText').value = ''; run({ action: 'learn-chat', text: t }, t);
+  el('studyText').value = ''; el('studyText').blur();  // send closes the keyboard, like ChatGPT
+  run({ action: 'learn-chat', text: t }, t);
 };
 el('studyText').onkeydown = e => { if (e.key === 'Enter') el('studySend').click(); };
 el('studyQuiz').onclick = () => { const d = !openQuestion() && dueCards()[0]; if (d) showFlash(d); else run({ action: 'learn-next' }, 'Quiz me.'); };
 el('qCheck').onclick = async () => {
   const q = openQuestion(), a = el('qAnswer').value.trim(); if (!q || !a) return;
-  el('qAnswer').value = '';
+  el('qAnswer').value = ''; el('qAnswer').blur();
   answer(q, a, a);
 };
 // After an answer and its explanation, the next question comes by itself (a short pause to read first).

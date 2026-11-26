@@ -150,10 +150,11 @@
   #studyMain[hidden]{display:none}
   body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
   .avatarSpace{height:124px;flex:none;pointer-events:none}
-  /* With no question card open, the chat runs down behind her: older messages show on either side of her head
-     and the newest one stops just above it. */
+  /* Like ChatGPT's orb: with no question card open the chat runs all the way down and she simply floats over it. */
   body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
-  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:132px;margin-bottom:.4rem}
+  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:16px;margin-bottom:.4rem}
+  /* The input stays small: Send only appears once there is something to send. */
+  #studyText:placeholder-shown:not(:focus) ~ #studySend{display:none}
   /* Waiting for her reply: a soft lavender ring circles her head. */
   .stage > *{grid-area:1/1}
   .thinkring{width:128px;height:128px;border-radius:50%;opacity:0;pointer-events:none;align-self:end;margin-bottom:-10px;transition:opacity .3s;
@@ -798,6 +799,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=12"></script>
+<script type="module" src="study.js?v=13"></script>
 </body>
 </html>
