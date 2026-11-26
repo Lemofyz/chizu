@@ -170,7 +170,7 @@ document.querySelectorAll('[data-frate]').forEach(b => b.onclick = async () => {
     const topics = [...new Set(weak)].join('; '); weak = [];
     return run({ action: 'learn-chat', text: 'Give me one practice question on what I just forgot: ' + topics }, 'Practice what I forgot');
   }
-  bubble('her pop', 'All caught up. Nice.');
+  bubble('her pop', 'All caught up, meow~');
 });
 
 function freeLeft() {
@@ -212,7 +212,7 @@ function render(full) {
   if (full) {
     el('studyLog').innerHTML = '';
     const msgs = inSession(L().messages).filter(m => !(m.role === 'user' && m.content === '(flashcard)')).slice(-16);
-    if (!msgs.length) bubble('her', "Hi. What do you want to learn? Tell me the subject and I'll start with a few quick questions.");
+    if (!msgs.length) bubble('her', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions.");
     // Instructions the page sends on your behalf show as the button you pressed.
     const said = t => /^Give me one new question on what I have been studying/.test(t) ? 'Quiz me.' : /^Give me one practice question on what I just forgot/.test(t) ? 'Practice what I forgot' : t;
     // Flashcard self-ratings are stored as an answer and its notes; they are not part of the conversation.
@@ -329,9 +329,9 @@ function renderFolders() {
     '<button data-subj="">+ New subject<small></small></button>';
   el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
     el('subjList').hidden = true;
-    if (!b.dataset.subj) { setSubject(null); bubble('her pop', 'What do you want to learn next?'); el('studyText').focus(); return; }
+    if (!b.dataset.subj) { setSubject(null); bubble('her pop', 'What do you want to learn next, meow?'); el('studyText').focus(); return; }
     setSubject(b.dataset.subj); paused = false;
-    bubble('her pop', 'Switching to ' + rootOf(b.dataset.subj)?.name + '.'); act('h_nod');
+    bubble('her pop', 'Switching to ' + rootOf(b.dataset.subj)?.name + ', meow~'); act('h_nod');
     keepGoing(400);
   });
 }
@@ -414,7 +414,7 @@ const closeMenu = () => { el('chizuMenu').hidden = true; };
 let nudged = null;
 el('mHint').onclick = () => {
   closeMenu(); const q = openQuestion(); if (!q) return;
-  if (nudged !== q.id) { nudged = q.id; bubble('her pop', 'Have a guess first. Wrong is fine, it turns into a card to practise.'); act('h_tilt'); return; }
+  if (nudged !== q.id) { nudged = q.id; bubble('her pop', 'Have a guess first, meow. Wrong is fine, it turns into a card to practise.'); act('h_tilt'); return; }
   run({ action: 'learn-chat', text: 'Give me a small hint for this question, without telling me the answer.' }, 'Hint, please.');
 };
 el('mTired').onclick = () => { closeMenu(); paused = true; run({ action: 'learn-chat', text: "I'm tired." }, "I'm tired."); };
@@ -425,7 +425,7 @@ async function upload(file) {
   // The backend can't read text in images, so photos are read here first (free, in the browser) and sent as text.
   if (file.type.startsWith('image/')) {
     bubble('me', '📷 ' + (file.name || 'photo'));
-    const note = bubble('her pop', 'Reading your photo…'); act('h_think');
+    const note = bubble('her pop', 'Reading your photo, meow…'); act('h_think');
     let text = '';
     try { text = (await ocr(file)).trim(); } catch (_) {}
     note.remove();
@@ -469,7 +469,7 @@ window.chizuSync = async p => {
 };
 
 // 25 minutes of studying in the chat: a gentle break reminder.
-window.chizuBreak = () => { bubble('her pop', "That's 25 minutes. Stretch, drink some water, then we'll keep going."); act('h_happy'); };
+window.chizuBreak = () => { bubble('her pop', "That's 25 minutes, meow! Stretch, drink some water, then we'll keep going."); act('h_happy'); };
 
 // Small hook for testing the reply rendering in a browser console.
 window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, show: (s, id) => { state = s; sid = id; render(true); } };
