@@ -10,16 +10,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  /* Desk companion demo: Chizu sits in the middle of a white screen; timer at the bottom. */
-  :root{--bg:#fbfefb;--ink:#26222e;--deep:#3e3352;--lav:#8c74d4;--soft:#6c6676;--line:#ece9f1;--glass:rgba(255,255,255,.85)}
+  /* Desk companion: Chizu sits in the middle of a white screen. Status pills on top, focus bar at the bottom. */
+  :root{--bg:#fbfefb;--ink:#26222e;--deep:#3e3352;--lav:#8c74d4;--soft:#6c6676;--line:#ece9f1;--tint:#f1edfa;--glass:rgba(255,255,255,.88)}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+  button{font:inherit;color:inherit}
   .stage{position:fixed;inset:0;display:grid;place-items:center}
-  .frame{position:relative;width:min(92vw,68vh);aspect-ratio:1;touch-action:manipulation;cursor:pointer}
+  .frame{position:relative;width:min(92vw,62vh);aspect-ratio:1;touch-action:manipulation;cursor:pointer}
   .frame img,.frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .frame video{opacity:0;transition:opacity .2s}
   .frame video.on{opacity:1}
-  /* Until her real clips arrive, the photo breathes and reacts with simple squishes. */
+  /* Reactions without a video clip are simple squishes on the photo/video layer. */
   #pic{position:absolute;inset:0;transform-origin:50% 88%;animation:breathe 3.6s ease-in-out infinite}
   @keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.008,1.02)}}
   #pic.still{animation:none}
@@ -33,76 +34,171 @@
   @keyframes hug{30%{transform:scale(1.08,.9)}70%{transform:scale(1.03,.97)}}
   #pic.hop{animation:hop .8s ease-out}
   @keyframes hop{30%{transform:translateY(-7%) scale(.97,1.04)}55%{transform:translateY(0) scale(1.04,.95)}}
+  #pic.eat{animation:eat 1.2s ease-in-out}
+  @keyframes eat{15%,45%,75%{transform:scale(1.02,.97) translateY(1%)}30%,60%,90%{transform:scale(1,1)}}
   #pic.away{animation:none;transform:scaleX(-1);transition:transform .4s}
   #pic.sleepy{animation:sleepy 2.4s ease-in-out}
   @keyframes sleepy{40%{transform:translateY(2%) scale(1.02,.96)}}
-  .bubble{position:absolute;left:50%;top:-2%;transform:translateX(-50%);background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:.55rem 1rem;font-size:clamp(.85rem,2.2vh,1.02rem);box-shadow:0 10px 30px rgba(62,51,82,.1);white-space:nowrap;max-width:92vw;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:2}
+  .bubble{position:absolute;left:50%;top:-4%;transform:translateX(-50%);background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:.55rem 1rem;font-size:clamp(.85rem,2.2vh,1.02rem);box-shadow:0 10px 30px rgba(62,51,82,.1);white-space:nowrap;max-width:92vw;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:2}
   .bubble.show{opacity:1;transform:translateX(-50%) translateY(4px)}
   .fx{position:absolute;pointer-events:none;font-size:22px;animation:rise 1s ease-out forwards;z-index:2}
   @keyframes rise{to{transform:translateY(-70px) scale(1.3);opacity:0}}
-  .bar{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);border-radius:999px;padding:.4rem .45rem .4rem 1rem;box-shadow:0 8px 28px rgba(62,51,82,.08);max-width:calc(100vw - 24px)}
+
+  .top{position:fixed;z-index:3;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:center;gap:.45rem;flex-wrap:wrap;padding:0 12px}
+  .pill{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--soft);background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:.32rem .8rem;text-decoration:none;white-space:nowrap}
+  button.pill{font-weight:700;color:var(--deep);cursor:pointer}
+  button.pill.on{background:var(--tint);border-color:#d9cff5}
+  .ring{width:18px;height:18px;flex:none}
+  .ring circle{fill:none;stroke-width:3}
+  .ring .bg{stroke:var(--line)}
+  .ring .fg{stroke:var(--lav);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .6s}
+  .hearts{letter-spacing:-.05em;color:var(--lav)}
+  .reserve{position:fixed;z-index:3;left:0;right:0;top:calc(max(12px,env(safe-area-inset-top)) + 38px);text-align:center;font-size:.75rem}
+  .reserve a{color:var(--soft)}
+
+  .bar{position:fixed;z-index:3;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);border-radius:999px;padding:.4rem .45rem .4rem 1rem;box-shadow:0 8px 28px rgba(62,51,82,.08);max-width:calc(100vw - 24px)}
   .time{font-family:Fraunces,serif;font-weight:600;font-size:1.6rem;color:var(--deep);min-width:4.6ch;text-align:center;font-variant-numeric:tabular-nums}
-  .bar button{white-space:nowrap;border:0;cursor:pointer;font:700 .85rem Nunito,sans-serif;border-radius:999px;padding:.55rem .85rem;background:transparent;color:var(--soft)}
-  .bar button.sel{background:#f1edfa;color:var(--deep)}
+  .bar button{white-space:nowrap;border:0;cursor:pointer;font-weight:700;font-size:.85rem;border-radius:999px;padding:.55rem .85rem;background:transparent;color:var(--soft)}
+  .bar button.sel{background:var(--tint);color:var(--deep)}
   .bar button.lock{opacity:.45}
   .bar button.go{background:var(--deep);color:#fff;padding:.6rem 1.15rem}
-  .top{position:fixed;z-index:3;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap;padding:0 12px}
-  .pill{font-size:.8rem;color:var(--soft);background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;text-decoration:none}
-  a.pill{color:var(--deep);font-weight:700}
-  button.pill{font:700 .8rem Nunito,sans-serif;color:var(--deep);cursor:pointer}
-  button.pill.on{background:#f1edfa;border-color:#d9cff5}
-  .hint{position:fixed;left:0;right:0;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 78px);text-align:center;font-size:.8rem;color:var(--soft);transition:opacity .6s}
+  .state{position:fixed;z-index:3;left:0;right:0;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 70px);text-align:center;font-size:.8rem;color:var(--soft);transition:opacity .6s;pointer-events:none}
+
+  .sheet{position:fixed;z-index:5;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,120%);width:min(420px,calc(100vw - 24px));background:#fff;border:1px solid var(--line);border-radius:22px;padding:1.1rem 1.1rem 1rem;box-shadow:0 20px 60px rgba(62,51,82,.18);transition:transform .3s ease}
+  .sheet.open{transform:translate(-50%,0)}
+  .sheet h3{font-family:Fraunces,serif;font-size:1.2rem;color:var(--deep);margin-bottom:.2rem}
+  .sheet p{font-size:.85rem;color:var(--soft)}
+  .sheet .close{position:absolute;top:.7rem;right:.8rem;border:0;background:transparent;font-size:1.2rem;color:var(--soft);cursor:pointer}
+  .items{display:grid;gap:.5rem;margin-top:.8rem}
+  .item{display:grid;grid-template-columns:2rem 1fr auto;align-items:center;gap:.6rem;border:1px solid var(--line);border-radius:14px;padding:.55rem .7rem}
+  .item .ic{font-size:1.4rem;text-align:center}
+  .item b{display:block;font-size:.9rem;color:var(--ink)}
+  .item small{font-size:.75rem;color:var(--soft)}
+  .item button{border:0;border-radius:999px;padding:.45rem .9rem;font-weight:700;font-size:.8rem;cursor:pointer;background:var(--deep);color:#fff}
+  .item button:disabled{background:var(--line);color:var(--soft);cursor:default}
+  .item.locked{opacity:.7}
+  .item.locked button{background:var(--tint);color:var(--deep)}
+  .row{display:flex;gap:.5rem;align-items:center;margin-top:.8rem}
+  .row input{flex:1;font:1rem Nunito,sans-serif;padding:.6rem .8rem;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);background:#fff}
+  .row button{border:0;border-radius:999px;padding:.6rem 1rem;font-weight:700;cursor:pointer;background:var(--deep);color:#fff}
+  .row button.ghost{background:var(--tint);color:var(--deep)}
   @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}}
 </style>
 </head>
 <body>
 <div class="top">
-  <span class="pill" id="stats">Today 0 min with Chizu · 0 pats</span>
-  <button class="pill" id="outfit" type="button">👚 Pajamas</button>
-  <a class="pill" href="index.html#reserve">Free demo · Reserve the full Chizu</a>
+  <span class="pill" title="Focus time today"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></span>
+  <button class="pill" id="foodBtn" type="button">🐟 <span id="fishN">0</span> <span class="hearts" id="hearts">♡♡♡</span></button>
+  <button class="pill" id="outfit" type="button">👚</button>
+  <button class="pill" id="remBtn" type="button">⏰</button>
 </div>
+<div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
 <div class="stage">
   <div class="frame" id="frame" aria-label="Chizu. Tap her head, tummy or tail. Hold to hug.">
     <div id="pic"><img src="assets/chizu.jpg" alt="Chizu" draggable="false"><video id="vid" muted playsinline preload="auto"></video></div>
     <div class="bubble" id="bubble"></div>
   </div>
 </div>
-<div class="hint" id="hint">Pat her head · poke her tummy · touch her tail · hold to hug</div>
+<div class="state" id="state">Pat her head · poke her tummy · touch her tail · hold to hug</div>
 <div class="bar">
   <span class="time" id="time">25:00</span>
   <button data-min="25" class="sel">25</button>
   <button data-min="50" class="lock" title="Full version">50 🔒</button>
   <button class="go" id="go">Focus</button>
 </div>
+
+<div class="sheet" id="foodSheet" role="dialog" aria-label="Feed Chizu">
+  <button class="close" data-close>×</button>
+  <h3>Snack time</h3>
+  <p>Every focus session with her catches a fish. Finish without touching your phone and you catch two.</p>
+  <div class="items">
+    <div class="item"><span class="ic">🐟</span><span><b>Fish</b><small>Caught by focusing · you have <span id="fishN2">0</span></small></span><button id="feedFish">Feed</button></div>
+    <div class="item locked" data-treat="sushi"><span class="ic">🍣</span><span><b>Salmon nigiri</b><small>Her favourite. New happy dance.</small></span><button>Full version</button></div>
+    <div class="item locked" data-treat="cake"><span class="ic">🍰</span><span><b>Strawberry cake</b><small>Party hat included.</small></span><button>Full version</button></div>
+    <div class="item locked" data-treat="pudding"><span class="ic">🍮</span><span><b>Pudding</b><small>Wobbles. She loves that.</small></span><button>Full version</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="remSheet" role="dialog" aria-label="Study reminder">
+  <button class="close" data-close>×</button>
+  <h3>Study reminder</h3>
+  <p>Pick a time. She'll call you to your desk every day, as long as this page is open.</p>
+  <div class="row"><input type="time" id="remTime" value="20:00"><button id="remSave">Remind me</button><button class="ghost" id="remOff">Off</button></div>
+  <p id="remNote" style="margin-top:.6rem"></p>
+</div>
+
 <script>
-  // Real clips go in assets/clips/<name>.mp4 (idle, pat, poke, tail, hug, hop, sleepy...).
-  // Any clip that exists replaces the photo animation for that reaction.
+  // ---------- Her lines ----------
   const LINES = {
     pat:["Mm. Acceptable.","…you may continue.","Softest cat on your desk. Obviously."],
     poke:["Excuse me.","That is a tummy, not a button.","I will remember this."],
     tail:["The tail is not for touching.","Fine. One swish. For you."],
     hug:["…okay. Five more seconds.","You're warm. That's all it is."],
     hop:["Mrrp?","Oh. You're still here. Good."],
-    focus:["I'll sit right here. Don't touch your phone.","Work. I'm watching."],
-    cheer:["Done? Look at you.","Not bad. Treats later?"],
+    focus:["I'll sit right here. Leave the phone alone.","Work. I'm watching."],
+    pause:["Short break. I'll keep your seat warm."],
+    resume:["Back to it. I'm right here."],
+    cheer:["Done. I caught us a fish.","Not bad. That earned a fish."],
+    cheer2:["No phone the whole time? Two fish. I'm impressed.","Perfect session. Two fish. Don't let it go to your head."],
     away:["You picked up your phone. I saw.","Hmph. I'm not looking at you."],
-    back:["…fine. Welcome back.","Took you long enough."],
+    back:["…fine. Welcome back. Timer's still waiting.","Took you long enough. Let's finish this."],
     sleepy:["*yawn* It's late. Bed?","My eyes are closing. Yours too."],
-    locked:["50 minutes is in the full version. Reserve me?"]
+    locked:["50 minutes is in the full version. Reserve me?"],
+    eat:["Mmm. Acceptable fish.","*munch* …you may bring more.","Fish. My favourite. After the other fish."],
+    nofish:["No fish yet. Focus with me and I'll catch some.","Fish come from focus. I don't make the rules. I do, actually."],
+    full:["I'm full. Save it for later."],
+    peckish:["Is that a snack in your bag?","I'm not hungry. I'm just looking at the fish button."],
+    treat:["That one's a treat from the full version."],
+    goal:["That's today's goal. I'm proud. Quietly.","Goal done. You can rest now, if you want."],
+    morning:["Morning. I've been up for ages.","Oh. You're awake. Good."],
+    evening:["Evening. One session, then rest?","You came back. I wasn't waiting."],
+    remind:["It's study time. I'm already at the desk.","Desk time. I saved you a spot."],
+    wear:["Pajamas on. Don't laugh.","Is it bedtime? It's bedtime."],
+    unwear:["Okay. Awake mode.","Back to work, I suppose."]
   };
-  // In pajamas she has her own moves and her own lines.
+  // In pajamas she has her own moves and some of her own lines.
   const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
     hop:["*yawn* I'm awake. I'm awake."],
     hug:["Warm… don't move…","zzz… huh? I wasn't sleeping."],
-    sleepy:["zzz…","My cap fell off. Don't look."],
-    wear:["Pajamas on. Don't laugh.","Is it bedtime? It's bedtime."],
-    unwear:["Okay. Awake mode.","Back to work, I suppose."]
+    sleepy:["zzz…","My cap fell off. Don't look."]
   };
-  let outfit = localStorage.getItem('chizu_outfit') === 'pj' ? 'pj' : 'plain';
-  const pic = document.getElementById('pic'), vid = document.getElementById('vid');
+
+  // ---------- Saved state (this device only) ----------
+  const KEY = 'chizu_v2';
+  const dayOf = t => new Date(t).toLocaleDateString('en-CA');
+  const today = () => dayOf(Date.now());
+  const yesterday = () => dayOf(Date.now() - 864e5);
+  let st = {day: today(), focusSec: 0, goalMin: 25, streak: 0, goalDay: '', fish: 1, full: 2, fedAt: Date.now(), pats: 0, remind: '', remindDay: '', outfit: 'plain', seen: ''};
+  try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(_){}
+  if (st.day !== today()) { st.day = today(); st.focusSec = 0; }
+  if (st.goalDay && st.goalDay !== today() && st.goalDay !== yesterday()) st.streak = 0;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(_){} render(); };
+
+  // Fullness drops one heart every 8 hours, never below empty. She gets peckish, never sad.
+  const HEART_MS = 8 * 3600e3;
+  function settleHunger(){
+    const drops = Math.floor((Date.now() - st.fedAt) / HEART_MS);
+    if (drops > 0) { st.full = Math.max(0, st.full - drops); st.fedAt += drops * HEART_MS; }
+  }
+
+  // ---------- Rendering ----------
+  const $ = id => document.getElementById(id);
+  function render(){
+    const min = Math.floor(st.focusSec / 60), goal = st.goalMin;
+    $('today').textContent = min + ' / ' + goal + ' min';
+    $('ring').style.strokeDashoffset = 47.1 * (1 - Math.min(1, st.focusSec / (goal * 60)));
+    $('streak').textContent = st.streak > 0 ? ' · 🔥 ' + st.streak : '';
+    $('fishN').textContent = st.fish; $('fishN2').textContent = st.fish;
+    $('hearts').textContent = '♥'.repeat(st.full) + '♡'.repeat(3 - st.full);
+    $('feedFish').disabled = st.fish <= 0 || st.full >= 3;
+    $('feedFish').textContent = st.full >= 3 ? 'Full' : 'Feed';
+  }
+
+  // ---------- Video clips with photo fallback ----------
+  const pic = $('pic'), vid = $('vid'), img = pic.querySelector('img');
   const clip = {};
   async function hasClip(name){
     if (name in clip) return clip[name];
@@ -110,9 +206,9 @@
     catch(_) { clip[name] = null; }
     return clip[name];
   }
-  let busy = false, mode = 'idle', rest = '';  // rest becomes 'still' once her video breathes for her
+  let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   async function act(name){
-    const key = outfit === 'pj' ? PJ[name] : name;
+    const key = st.outfit === 'pj' ? PJ[name] : name;
     const src = key ? await hasClip(key) : null;
     if (src) {
       if (name === 'idle') { rest = 'still'; pic.className = rest; }
@@ -124,32 +220,31 @@
     if (name === 'idle') return;
     pic.className = rest; void pic.offsetWidth; pic.className = name;
     busy = true;
-    if (name !== 'away') setTimeout(() => { busy = false; pic.className = rest; }, 1000);
+    if (name !== 'away') setTimeout(() => { busy = false; pic.className = rest; }, name === 'eat' ? 1300 : 1000);
   }
-  const bubble = document.getElementById('bubble'); let bt;
-  function say(key){ const a = (outfit === 'pj' && LINES_PJ[key]) || LINES[key]; if (!a) return; bubble.textContent = a[Math.floor(Math.random()*a.length)]; bubble.classList.add('show'); clearTimeout(bt); bt = setTimeout(()=>bubble.classList.remove('show'), 3200); }
-  function fx(x, y, ch){ const s = document.createElement('span'); s.className='fx'; s.textContent = ch; s.style.left = x+'px'; s.style.top = y+'px'; frame.appendChild(s); setTimeout(()=>s.remove(), 1000); }
+  const bubble = $('bubble'); let bt;
+  function say(key){
+    const a = (st.outfit === 'pj' && LINES_PJ[key]) || LINES[key]; if (!a) return;
+    bubble.textContent = a[Math.floor(Math.random() * a.length)];
+    bubble.classList.add('show'); clearTimeout(bt); bt = setTimeout(() => bubble.classList.remove('show'), 3400);
+  }
+  const frame = $('frame');
+  function fx(x, y, ch){ const s = document.createElement('span'); s.className = 'fx'; s.textContent = ch; s.style.left = x + 'px'; s.style.top = y + 'px'; frame.appendChild(s); setTimeout(() => s.remove(), 1000); }
+  const fxCenter = ch => fx(frame.clientWidth * .45, frame.clientHeight * .45, ch);
 
-  // Stats stay on this device.
-  const today = new Date().toISOString().slice(0,10);
-  let st = {day: today, min: 0, pats: 0};
-  try { const s = JSON.parse(localStorage.getItem('chizu') || '{}'); if (s.day === today) st = s; } catch(_){}
-  function save(){ try { localStorage.setItem('chizu', JSON.stringify(st)); } catch(_){} document.getElementById('stats').textContent = 'Today ' + st.min + ' min with Chizu · ' + st.pats + ' pats'; }
-  save();
-
-  // Touch zones, as fractions of the square photo: head on top, tail on the right.
+  // ---------- Touch ----------
   function zone(x, y){ if (x > 0.64 && y > 0.38) return 'tail'; if (y < 0.45) return 'pat'; return 'poke'; }
-  const frame = document.getElementById('frame'); let holdT, lastTap = 0;
+  let holdT, lastTap = 0;
   frame.addEventListener('pointerdown', e => { holdT = setTimeout(() => { holdT = null; react('hug', e); }, 650); });
   frame.addEventListener('pointerup', e => {
     if (!holdT) return; clearTimeout(holdT); holdT = null;
     const now = Date.now(); if (now - lastTap < 300) { lastTap = 0; return react('hop', e); } lastTap = now;
     const r = frame.getBoundingClientRect();
-    react(zone((e.clientX - r.left)/r.width, (e.clientY - r.top)/r.height), e);
+    react(zone((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height), e);
   });
   frame.addEventListener('pointerleave', () => { if (holdT) { clearTimeout(holdT); holdT = null; } });
   function react(kind, e){
-    document.getElementById('hint').style.opacity = 0;
+    if (!running) $('state').style.opacity = 0;
     const r = frame.getBoundingClientRect();
     fx(e.clientX - r.left, e.clientY - r.top, kind === 'poke' ? '💢' : kind === 'hug' ? '💜' : kind === 'tail' ? '〰️' : '✨');
     if (kind === 'pat' || kind === 'hug') { st.pats++; save(); }
@@ -157,42 +252,123 @@
     if (!busy || kind === 'hug') act(kind);
   }
 
-  // Focus timer: 25 minutes in the demo.
-  let total = 25*60, left = total, timer = null, leftAt = 0;
-  const timeEl = document.getElementById('time'), go = document.getElementById('go');
-  const fmt = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
-  document.querySelector('[data-min="50"]').onclick = () => say('locked');
+  // ---------- Focus (time only counts while she is on screen) ----------
+  // Adapted from 1O1's study clock: background time never counts. Unlike 1O1 there is no idle cut-off,
+  // because studying here means looking at your book, not touching the screen.
+  let total = 25 * 60, left = total, running = false, pickups = 0, hiddenAt = 0, wake = null, last = Date.now();
+  const timeEl = $('time'), go = $('go');
+  const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  async function keepAwake(on){
+    try {
+      if (on && 'wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+      if (!on && wake) { await wake.release(); wake = null; }
+    } catch(_){}
+  }
+  function setState(text){ const s = $('state'); s.textContent = text; s.style.opacity = text ? 1 : 0; }
+  function start(){ running = true; last = Date.now(); go.textContent = 'Pause'; keepAwake(true); setState('She keeps your screen on. Leave the phone where it is.'); }
+  function stop(text){ running = false; go.textContent = left < total ? 'Resume' : 'Focus'; keepAwake(false); setState(text || ''); }
   go.onclick = () => {
-    if (timer) { clearInterval(timer); timer = null; mode = 'idle'; go.textContent = 'Focus'; return; }
-    mode = 'focus'; go.textContent = 'Pause'; say('focus');
-    timer = setInterval(() => {
-      left--; timeEl.textContent = fmt(left);
-      if (left % 60 === 0) { st.min++; save(); }
-      if (left <= 0) { clearInterval(timer); timer = null; mode = 'idle'; go.textContent = 'Focus'; left = total; timeEl.textContent = fmt(left); say('cheer'); act('hop'); }
-    }, 1000);
+    if (running) { stop('Paused. Your fish is waiting.'); say('pause'); return; }
+    if (left === total) { pickups = 0; say('focus'); } else say('resume');
+    start();
   };
-  // Leave during focus and she turns her back; come back and she slowly forgives you.
+  document.querySelector('[data-min="50"]').onclick = () => say('locked');
+  setInterval(() => {
+    const now = Date.now(), dt = Math.round((now - last) / 1000); last = now;
+    if (!running || document.hidden || dt <= 0) return;
+    const step = Math.min(dt, left);
+    left -= step; st.focusSec += step;
+    if (st.day !== today()) { st.day = today(); st.focusSec = step; }
+    timeEl.textContent = fmt(left);
+    if (st.focusSec >= st.goalMin * 60 && st.goalDay !== today()) {
+      st.streak = st.goalDay === yesterday() ? st.streak + 1 : 1; st.goalDay = today();
+      setTimeout(() => say('goal'), 3600);
+    }
+    if (left <= 0) finish(); else if (st.focusSec % 10 === 0) save();
+  }, 1000);
+  function finish(){
+    const perfect = pickups === 0;
+    st.fish += perfect ? 2 : 1;
+    left = total; timeEl.textContent = fmt(left); stop('');
+    say(perfect ? 'cheer2' : 'cheer'); act('hop'); fxCenter('🐟'); if (perfect) setTimeout(() => fxCenter('🐟'), 300);
+    save();
+  }
+  // Leaving during focus: the timer waits, she turns her back, then forgives you.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { leftAt = Date.now(); return; }
-    if (mode === 'focus' && Date.now() - leftAt > 8000) {
-      say('away'); busy = true; pic.className = 'away';
-      setTimeout(() => { pic.className = rest; busy = false; say('back'); }, 3500);
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    last = Date.now();
+    if (running) {
+      keepAwake(true);
+      if (Date.now() - hiddenAt > 8000) {
+        pickups++; say('away'); busy = true; pic.className = 'away';
+        setTimeout(() => { pic.className = rest; busy = false; say('back'); }, 3500);
+      }
     }
   });
-  setInterval(() => { const h = new Date().getHours(); if (!busy && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
 
-  // Outfit switch: swaps her photo and her whole set of moves.
-  const outfitBtn = document.getElementById('outfit'), img = pic.querySelector('img');
+  // ---------- Feeding ----------
+  const sheets = [...document.querySelectorAll('.sheet')];
+  const openSheet = id => { sheets.forEach(s => s.classList.toggle('open', s.id === id)); };
+  document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
+  $('foodBtn').onclick = () => { settleHunger(); render(); openSheet($('foodSheet').classList.contains('open') ? '' : 'foodSheet'); };
+  $('feedFish').onclick = () => {
+    settleHunger();
+    if (st.full >= 3) return say('full');
+    if (st.fish <= 0) return say('nofish');
+    st.fish--; st.full++; st.fedAt = Date.now();
+    save(); openSheet(''); say('eat'); act('eat'); fxCenter('🐟');
+  };
+  document.querySelectorAll('.item.locked').forEach(el => el.onclick = () => say('treat'));
+  setInterval(() => { settleHunger(); render(); if (!running && !busy && st.full === 0 && Math.random() < 0.3) say('peckish'); }, 180000);
+
+  // ---------- Daily reminder (works while the page is open) ----------
+  function remNote(){
+    $('remNote').textContent = st.remind ? 'On · every day at ' + st.remind + '. Leave this tab open (or her on your phone stand).' : 'Off.';
+  }
+  $('remBtn').onclick = () => { $('remTime').value = st.remind || '20:00'; remNote(); openSheet($('remSheet').classList.contains('open') ? '' : 'remSheet'); };
+  $('remSave').onclick = async () => {
+    st.remind = $('remTime').value; st.remindDay = ''; save(); remNote();
+    $('remBtn').classList.add('on');
+    if ('Notification' in window && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch(_){} }
+  };
+  $('remOff').onclick = () => { st.remind = ''; save(); remNote(); $('remBtn').classList.remove('on'); };
+  $('remBtn').classList.toggle('on', !!st.remind);
+  setInterval(() => {
+    if (!st.remind || st.remindDay === today()) return;
+    const n = new Date(), hm = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    if (hm < st.remind) return;
+    st.remindDay = today(); save();
+    if (running) return;
+    say('remind'); act('hop');
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      try { new Notification('Chizu', {body: 'It\'s study time. I\'m already at the desk.', icon: 'assets/chizu.jpg'}); } catch(_){}
+    }
+  }, 20000);
+
+  // ---------- Outfit ----------
+  const outfitBtn = $('outfit');
   function wear(o, quiet){
-    outfit = o; try { localStorage.setItem('chizu_outfit', o); } catch(_){}
+    st.outfit = o; save();
     img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Pajamas';
     vid.classList.remove('on'); vid.onended = null; busy = false; rest = ''; pic.className = '';
     if (!quiet) say(o === 'pj' ? 'wear' : 'unwear');
     act('idle');
   }
-  outfitBtn.onclick = () => wear(outfit === 'pj' ? 'plain' : 'pj');
-  wear(outfit, true);
+  outfitBtn.onclick = () => wear(st.outfit === 'pj' ? 'plain' : 'pj');
+
+  // Late at night she gets sleepy now and then.
+  setInterval(() => { const h = new Date().getHours(); if (!busy && !running && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
+
+  // ---------- Start ----------
+  settleHunger();
+  wear(st.outfit, true);
+  if (st.seen !== today()) {
+    st.seen = today(); save();
+    const h = new Date().getHours();
+    setTimeout(() => say(h < 12 ? 'morning' : 'evening'), 900);
+  }
+  render();
 </script>
 </body>
 </html>
