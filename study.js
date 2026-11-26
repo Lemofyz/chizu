@@ -10,7 +10,14 @@ const sb = createClient(cfg.url, cfg.key, {
 });
 
 const el = id => document.getElementById(id);
-let state = null, sending = false;
+let state = null, sending = false, sid = null;
+// Same formula as the backend's chizuSessionId: Chizu keeps one conversation of her own per account.
+async function chizuSessionId(user) {
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('chizu-session:' + user)));
+  h[6] = (h[6] & 0x0f) | 0x40; h[8] = (h[8] & 0x3f) | 0x80;
+  const x = [...h.slice(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
+}
 
 // ---------- Sign-in ----------
 async function session() { return (await sb.auth.getSession()).data.session; }
@@ -90,7 +97,7 @@ function bubble(cls, text) {
   el('studyLog').appendChild(d); el('studyLog').scrollTop = 1e9; math(d); return d;
 }
 const L = () => state?.learning;
-const inSession = (list, key = 'session_id') => L().activeSessionId ? list.filter(x => x[key] === L().activeSessionId) : list;
+const inSession = list => list.filter(x => x.session_id === sid);
 function openQuestion() { return inSession(L().questions).find(q => q.status === 'open'); }
 function pendingReview() {
   return inSession(L().questions).find(q => q.review_card_id && L().attempts.some(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)));
@@ -111,8 +118,10 @@ function render(full) {
   el('studyQ').hidden = !q;
   if (q) { el('qPrompt').innerHTML = fmt(q.prompt); math(el('qPrompt')); }
   el('studyRate').hidden = !rv;
-  el('studyMeta').textContent = (L().due ? L().due + ' to review · ' : '') + freeLeft() + ' of ' + FREE_DAILY + ' free questions left today';
-  window.chizuDue = L().due || 0;
+  const mine = new Set(inSession(L().questions).map(q => q.id));
+  const due = L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).length;
+  el('studyMeta').textContent = (due ? due + ' to review · ' : '') + freeLeft() + ' of ' + FREE_DAILY + ' free questions left today';
+  window.chizuDue = due;
 }
 
 // ---------- Actions ----------
@@ -121,6 +130,7 @@ async function run(body, userText) {
   sending = true; setBusy(true);
   if (userText) bubble('me', userText);
   const her = bubble('her', '…'); let text = '';
+  const frame = el('frame'); frame.classList.add('talking');
   try {
     state = await stream(body, chunk => { text += chunk; her.innerHTML = fmt(text); el('studyLog').scrollTop = 1e9; });
     if (!text) her.remove(); else math(her);
@@ -129,9 +139,9 @@ async function run(body, userText) {
   } catch (e) {
     her.className = 'msg err'; her.textContent = e.message;
     if (/free questions/.test(e.message)) { say('treat'); }
-  } finally { sending = false; setBusy(false); }
+  } finally { sending = false; setBusy(false); frame.classList.remove('talking'); }
 }
-function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost']) el(id).disabled = b; }
+function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost', 'studyMic']) el(id).disabled = b; }
 
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t) return;
@@ -160,10 +170,27 @@ async function openStudy() {
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   if (!s) return;
+  sid = await chizuSessionId(s.user.id);
   try { state = await loadState(); render(true); }
   catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
+// Tapping her small head (or Escape) brings her back to the middle of the screen.
+el('frame').addEventListener('click', e => { if (document.body.classList.contains('studying')) { e.stopPropagation(); openSheet(''); } }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('studying')) openSheet(''); });
+
+// Voice input where the browser supports it.
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Rec) {
+  el('studyMic').hidden = false;
+  el('studyMic').onclick = () => {
+    const r = new Rec(); r.lang = 'en-US'; r.interimResults = true;
+    el('studyMic').textContent = '●';
+    r.onresult = e => { el('studyText').value = [...e.results].map(x => x[0].transcript).join(''); };
+    r.onend = () => { el('studyMic').textContent = '🎤'; if (el('studyText').value.trim()) el('studySend').click(); };
+    r.start();
+  };
+}
 
 // Focus sessions also count as study time in the same account (1O1's effective-time record).
 window.chizuSync = async p => {

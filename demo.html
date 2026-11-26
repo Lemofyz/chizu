@@ -101,6 +101,34 @@
   .shareview[hidden]{display:none}
   .shareview img{max-height:72vh;max-width:100%;border-radius:18px;box-shadow:0 20px 60px rgba(62,51,82,.18)}
   .btnlink{border-radius:999px;padding:.6rem 1rem;font-weight:700;background:var(--deep);color:#fff;text-decoration:none}
+  /* Study mode: Chizu shrinks into a living round avatar above the input, chat opens above her. */
+  .frame{transition:width .55s cubic-bezier(.2,.8,.2,1),border-radius .55s,box-shadow .55s}
+  .frame img,.frame video{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+  .stage{transition:padding .55s cubic-bezier(.2,.8,.2,1)}
+  body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 104px)}
+  body.studying .frame{width:108px;border-radius:50%;overflow:hidden;box-shadow:0 10px 30px rgba(62,51,82,.18);background:#fefefe;z-index:6}
+  body.studying .frame img,body.studying .frame video{transform:scale(1.85);transform-origin:50% 34%}
+  body.studying .frame .bubble{display:none}
+  body.studying #pic{-webkit-mask-image:none;mask-image:none}
+  body.studying .bar,body.studying .state,body.studying .reserve{opacity:0;pointer-events:none}
+  body.studying .frame.talking #pic{animation:talk .5s ease-in-out infinite}
+  @keyframes talk{50%{transform:translateY(-3%) scale(1.03)}}
+  #studySheet{display:none}
+  body.studying #studySheet{display:flex;flex-direction:column;position:fixed;z-index:5;left:50%;transform:translateX(-50%);top:calc(max(12px,env(safe-area-inset-top)) + 64px);bottom:max(16px,env(safe-area-inset-bottom));width:min(640px,94vw);max-height:none;background:transparent;border:0;box-shadow:none;padding:0;pointer-events:none;animation:fadein .4s ease}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  body.studying #studySheet > *{pointer-events:auto}
+  body.studying #studySheet h3{display:none}
+  body.studying #studySheet .close{top:-6px;right:0;background:var(--glass);border:1px solid var(--line);border-radius:999px;width:34px;height:34px}
+  #studyMain{display:flex;flex-direction:column;flex:1;min-height:0}
+  #studyMain[hidden]{display:none}
+  body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
+  .avatarSpace{height:124px;flex:none;pointer-events:none}
+  body.studying #studyMain{pointer-events:none}
+  body.studying #studyMain > *:not(.avatarSpace){pointer-events:auto}
+  body.studying .stage{z-index:6;pointer-events:none}
+  body.studying .frame{pointer-events:auto;cursor:pointer}
+  body.studying #studySheet .qcard,body.studying #studyAuth{background:#fff}
+  body.studying #studyAuth{margin:auto 0 140px;border:1px solid var(--line);border-radius:18px;padding:1rem}
   @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}}
 </style>
 </head>
@@ -167,7 +195,8 @@
       <p>How well did you remember it?</p>
       <div class="row rate"><button data-rate="1">Forgot</button><button data-rate="2">Hard</button><button data-rate="3">Good</button><button data-rate="4">Easy</button></div>
     </div>
-    <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button id="studySend">Send</button></div>
+    <div class="avatarSpace" aria-hidden="true"></div>
+    <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button class="ghost" id="studyMic" title="Speak" hidden>🎤</button><button id="studySend">Send</button></div>
     <div class="row"><button class="ghost" id="studyQuiz">Quiz me</button><span class="meta" id="studyMeta"></span></div>
   </div>
 </div>
@@ -336,9 +365,10 @@
   // ---------- Touch ----------
   function zone(x, y){ if (x > 0.64 && y > 0.38) return 'tail'; if (y < 0.45) return 'pat'; return 'poke'; }
   let holdT, tapT = null;
-  frame.addEventListener('pointerdown', e => { holdT = setTimeout(() => { holdT = null; react('hug', e); }, 650); });
+  const studying = () => document.body.classList.contains('studying');
+  frame.addEventListener('pointerdown', e => { if (studying()) return; holdT = setTimeout(() => { holdT = null; react('hug', e); }, 650); });
   frame.addEventListener('pointerup', e => {
-    if (!holdT) return; clearTimeout(holdT); holdT = null;
+    if (studying() || !holdT) return; clearTimeout(holdT); holdT = null;
     // Wait a moment before reacting to a single tap, so a double tap can become her walk-around instead.
     const pt = {clientX: e.clientX, clientY: e.clientY};
     if (tapT) { clearTimeout(tapT); tapT = null; return react('hop', pt); }
@@ -350,6 +380,7 @@
   });
   frame.addEventListener('pointerleave', () => { if (holdT) { clearTimeout(holdT); holdT = null; } });
   function react(kind, e){
+    if (document.body.classList.contains('studying')) return;  // in study mode a tap on her head just brings her back
     if (!running) $('state').style.opacity = 0;
     const r = frame.getBoundingClientRect();
     fx(e.clientX - r.left, e.clientY - r.top, kind === 'poke' ? '💢' : kind === 'hug' ? '💜' : kind === 'tail' ? '〰️' : '✨');
@@ -426,7 +457,7 @@
 
   // ---------- Feeding ----------
   const sheets = [...document.querySelectorAll('.sheet')];
-  const openSheet = id => { sheets.forEach(s => s.classList.toggle('open', s.id === id)); };
+  const openSheet = id => { sheets.forEach(s => s.classList.toggle('open', s.id === id)); document.body.classList.toggle('studying', id === 'studySheet'); };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
   $('foodBtn').onclick = () => { settleHunger(); render(); openSheet($('foodSheet').classList.contains('open') ? '' : 'foodSheet'); };
   $('feedFish').onclick = () => {
