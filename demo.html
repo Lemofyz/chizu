@@ -493,7 +493,7 @@
   setInterval(() => { const h = new Date().getHours(); if (!busy && !running && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
 
   // ---------- Study log and share card ----------
-  const zh = /^zh/i.test(navigator.language || '');
+  const zh = false;  // English everywhere for now, whatever the browser language
   const hm = sec => { const m = Math.round(sec / 60), h = Math.floor(m / 60), r = m % 60;
     return zh ? (h ? h + ' 小时 ' + (r ? r + ' 分钟' : '') : r + ' 分钟').trim() : (h ? h + 'h ' + (r ? r + 'm' : '') : r + ' min').trim(); };
   function lastDays(n){
