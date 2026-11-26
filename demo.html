@@ -83,12 +83,31 @@
   .row input{flex:1;font:1rem Nunito,sans-serif;padding:.6rem .8rem;border:1.5px solid var(--line);border-radius:12px;color:var(--ink);background:#fff}
   .row button{border:0;border-radius:999px;padding:.6rem 1rem;font-weight:700;cursor:pointer;background:var(--deep);color:#fff}
   .row button.ghost{background:var(--tint);color:var(--deep)}
+  .sheet.tall{max-height:78vh;display:flex;flex-direction:column}
+  .log{flex:1;min-height:120px;max-height:38vh;overflow:auto;display:grid;gap:.5rem;margin:.7rem 0 .2rem;padding-right:.2rem;user-select:text;-webkit-user-select:text}
+  .msg{font-size:.9rem;line-height:1.5;padding:.55rem .8rem;border-radius:14px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}
+  .msg.me{justify-self:end;background:var(--deep);color:#fff}
+  .msg.her{justify-self:start;background:var(--tint);color:var(--ink)}
+  .msg.err{justify-self:start;background:#fff4f0;color:#8a3b22}
+  .qcard{border:1px solid var(--line);border-radius:14px;padding:.7rem .8rem;margin-top:.5rem;user-select:text;-webkit-user-select:text}
+  .qprompt{font-size:.92rem;white-space:pre-wrap}
+  .rate button{flex:1;padding:.55rem .3rem}
+  .meta{font-size:.75rem;color:var(--soft);margin-left:auto;text-align:right}
+  .bars{display:grid;grid-template-columns:repeat(7,1fr);gap:.4rem;align-items:end;height:140px;margin-top:.8rem}
+  .dbar{display:flex;flex-direction:column;align-items:center;gap:.25rem;height:100%;justify-content:flex-end;font-size:.7rem;color:var(--soft)}
+  .dbar i{display:block;width:70%;min-height:3px;border-radius:6px 6px 3px 3px;background:var(--lav)}
+  .dbar.today i{background:var(--deep)}
+  .shareview{position:fixed;inset:0;z-index:9;background:rgba(251,254,251,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;padding:20px;text-align:center;font-size:.85rem;color:var(--soft)}
+  .shareview[hidden]{display:none}
+  .shareview img{max-height:72vh;max-width:100%;border-radius:18px;box-shadow:0 20px 60px rgba(62,51,82,.18)}
+  .btnlink{border-radius:999px;padding:.6rem 1rem;font-weight:700;background:var(--deep);color:#fff;text-decoration:none}
   @media (prefers-reduced-motion:reduce){#pic{animation:none!important}.fx{display:none}}
 </style>
 </head>
 <body>
 <div class="top">
-  <span class="pill" title="Focus time today"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></span>
+  <button class="pill" id="todayBtn" type="button" title="Study log"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></button>
+  <button class="pill" id="studyBtn" type="button">📖 Study</button>
   <button class="pill" id="foodBtn" type="button">🐟 <span id="fishN">0</span> <span class="hearts" id="hearts">♡♡♡</span></button>
   <button class="pill" id="playBtn" type="button" title="Feather wand">🪶 Play</button>
   <button class="pill" id="outfit" type="button">👚</button>
@@ -119,6 +138,44 @@
     <div class="item locked" data-treat="cake"><span class="ic">🍰</span><span><b>Strawberry cake</b><small>Party hat included.</small></span><button>Shop · soon</button></div>
     <div class="item locked" data-treat="pudding"><span class="ic">🍮</span><span><b>Pudding</b><small>Wobbles. She loves that.</small></span><button>Shop · soon</button></div>
   </div>
+</div>
+
+<div class="sheet" id="statSheet" role="dialog" aria-label="Study log">
+  <button class="close" data-close>×</button>
+  <h3>Study log</h3>
+  <p id="statSum"></p>
+  <div class="bars" id="bars"></div>
+  <div class="row"><button id="shareBtn">Make today's share card</button></div>
+</div>
+
+<div class="sheet tall" id="studySheet" role="dialog" aria-label="Study with Chizu">
+  <button class="close" data-close>×</button>
+  <h3>Study with Chizu</h3>
+  <div id="studyAuth">
+    <p>Tell her what you're studying. She explains, quizzes you, and brings back what you missed the next day.</p>
+    <div class="row"><button id="studyLogin">Continue with Google</button></div>
+    <p style="margin-top:.5rem;font-size:.75rem">Sign-in keeps your questions and review cards. Free: 5 new questions a day.</p>
+  </div>
+  <div id="studyMain" hidden>
+    <div class="log" id="studyLog"></div>
+    <div class="qcard" id="studyQ" hidden>
+      <div class="qprompt" id="qPrompt"></div>
+      <div class="row"><input id="qAnswer" placeholder="Your answer" autocomplete="off"><button id="qCheck">Check</button></div>
+      <div class="row"><button class="ghost" id="qLost">I don't get it</button></div>
+    </div>
+    <div class="qcard" id="studyRate" hidden>
+      <p>How well did you remember it?</p>
+      <div class="row rate"><button data-rate="1">Forgot</button><button data-rate="2">Hard</button><button data-rate="3">Good</button><button data-rate="4">Easy</button></div>
+    </div>
+    <div class="row"><input id="studyText" placeholder="What are you studying?" autocomplete="off"><button id="studySend">Send</button></div>
+    <div class="row"><button class="ghost" id="studyQuiz">Quiz me</button><span class="meta" id="studyMeta"></span></div>
+  </div>
+</div>
+
+<div class="shareview" id="shareView" hidden>
+  <img id="shareImg" alt="Your study card">
+  <p>Long-press the image to save it, then post it anywhere.</p>
+  <div class="row"><a class="btnlink" id="shareDl" download="chizu-study.png">Download</a><button class="ghost" id="shareClose">Close</button></div>
 </div>
 
 <div class="sheet" id="remSheet" role="dialog" aria-label="Study reminder">
@@ -179,11 +236,15 @@
   const dayOf = t => new Date(t).toLocaleDateString('en-CA');
   const today = () => dayOf(Date.now());
   const yesterday = () => dayOf(Date.now() - 864e5);
-  let st = {day: today(), focusSec: 0, goalMin: 25, streak: 0, goalDay: '', fish: 1, full: 2, fedAt: Date.now(), pats: 0, remind: '', remindDay: '', outfit: 'plain', seen: ''};
+  let st = {day: today(), focusSec: 0, goalMin: 25, streak: 0, goalDay: '', fish: 1, full: 2, fedAt: Date.now(), pats: 0, remind: '', remindDay: '', outfit: 'plain', seen: '', hist: {}};
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(_){}
   if (st.day !== today()) { st.day = today(); st.focusSec = 0; }
   if (st.goalDay && st.goalDay !== today() && st.goalDay !== yesterday()) st.streak = 0;
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(_){} render(); };
+  const save = () => {
+    st.hist = st.hist || {}; st.hist[today()] = st.focusSec;
+    const days = Object.keys(st.hist).sort(); while (days.length > 90) delete st.hist[days.shift()];
+    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(_){} render();
+  };
 
   // Fullness drops one heart every 8 hours, never below empty. She gets peckish, never sad.
   const HEART_MS = 8 * 3600e3;
@@ -311,7 +372,8 @@
     } catch(_){}
   }
   function setState(text){ const s = $('state'); s.textContent = text; s.style.opacity = text ? 1 : 0; }
-  function start(){ running = true; last = Date.now(); go.textContent = 'Pause'; keepAwake(true); setState('She keeps your screen on. Leave the phone where it is.'); }
+  let sess = null;  // one study period per focus session, mirrored to the 1O1 account when signed in
+  function start(){ if (!sess) sess = {id: crypto.randomUUID(), started: new Date().toISOString(), sec: 0}; running = true; last = Date.now(); go.textContent = 'Pause'; keepAwake(true); setState('She keeps your screen on. Leave the phone where it is.'); }
   function stop(text){ running = false; go.textContent = left < total ? 'Resume' : 'Focus'; keepAwake(false); setState(text || ''); }
   go.onclick = () => {
     if (running) { stop('Paused. Your fish is waiting.'); say('pause'); return; }
@@ -325,9 +387,9 @@
   });
   setInterval(() => {
     const now = Date.now(), dt = Math.round((now - last) / 1000); last = now;
-    if (!running || document.hidden || dt <= 0) return;
+    if (!running || isAway() || dt <= 0) return;
     const step = Math.min(dt, left);
-    left -= step; st.focusSec += step;
+    left -= step; st.focusSec += step; if (sess) { sess.sec += step; if (sess.sec % 30 === 0) window.chizuSync?.(sess); }
     if (st.day !== today()) { st.day = today(); st.focusSec = step; }
     timeEl.textContent = fmt(left);
     if (st.focusSec >= st.goalMin * 60 && st.goalDay !== today()) {
@@ -341,23 +403,26 @@
   function finish(){
     const perfect = pickups === 0;
     st.fish += perfect ? 2 : 1;
+    if (sess) { window.chizuSync?.(sess); sess = null; }
     left = total; timeEl.textContent = fmt(left); stop('');
     say(perfect ? 'cheer2' : 'cheer'); act('hop'); fxCenter('🐟'); if (perfect) setTimeout(() => fxCenter('🐟'), 300);
     save();
   }
   // Leaving during focus: the timer waits, she turns her back, then forgives you.
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { hiddenAt = Date.now(); return; }
-    last = Date.now();
+  // Away = another tab, minimized, or another window in front. The timer stops while you're away.
+  const isAway = () => document.hidden || !document.hasFocus();
+  function wentAway(){ if (!hiddenAt) hiddenAt = Date.now(); }
+  function cameBack(){
+    if (!hiddenAt || isAway()) return;
+    const gone = Date.now() - hiddenAt; hiddenAt = 0; last = Date.now();
     if (running) {
       keepAwake(true);
-      if (Date.now() - hiddenAt > 8000) {
-        // She turns her back (a real clip), then slowly turns around and forgives you.
-        pickups++; say('away'); busy = false; act('away');
-        setTimeout(() => say('back'), 3800);
-      }
+      if (gone > 8000) { pickups++; say('away'); busy = false; act('away'); setTimeout(() => say('back'), 3800); }
     }
-  });
+  }
+  document.addEventListener('visibilitychange', () => document.hidden ? wentAway() : cameBack());
+  window.addEventListener('blur', wentAway);
+  window.addEventListener('focus', cameBack);
 
   // ---------- Feeding ----------
   const sheets = [...document.querySelectorAll('.sheet')];
@@ -427,6 +492,64 @@
   // Late at night she gets sleepy now and then.
   setInterval(() => { const h = new Date().getHours(); if (!busy && !running && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
 
+  // ---------- Study log and share card ----------
+  const zh = /^zh/i.test(navigator.language || '');
+  const hm = sec => { const m = Math.round(sec / 60), h = Math.floor(m / 60), r = m % 60;
+    return zh ? (h ? h + ' 小时 ' + (r ? r + ' 分钟' : '') : r + ' 分钟').trim() : (h ? h + 'h ' + (r ? r + 'm' : '') : r + ' min').trim(); };
+  function lastDays(n){
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) { const d = dayOf(Date.now() - i * 864e5); out.push({d, sec: d === today() ? st.focusSec : (st.hist?.[d] || 0)}); }
+    return out;
+  }
+  function renderLog(){
+    const days = lastDays(7), max = Math.max(1500, ...days.map(x => x.sec)), week = days.reduce((a, x) => a + x.sec, 0);
+    $('statSum').textContent = zh
+      ? '今天 ' + hm(st.focusSec) + ' · 本周 ' + hm(week) + (st.streak ? ' · 🔥 连续 ' + st.streak + ' 天' : '')
+      : 'Today ' + hm(st.focusSec) + ' · this week ' + hm(week) + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '');
+    $('bars').innerHTML = days.map(x => '<div class="dbar' + (x.d === today() ? ' today' : '') + '"><span>' + (x.sec ? Math.round(x.sec / 60) : '') + '</span><i style="height:' + Math.max(2, Math.round(x.sec / max * 100)) + '%"></i>' +
+      new Date(x.d + 'T12:00').toLocaleDateString(zh ? 'zh-CN' : 'en-US', {weekday: 'short'}) + '</div>').join('');
+  }
+  $('todayBtn').onclick = () => { renderLog(); openSheet($('statSheet').classList.contains('open') ? '' : 'statSheet'); };
+
+  async function makeCard(){
+    await document.fonts.ready;
+    const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fefefe'; g.fillRect(0, 0, W, H);
+    const pic = new Image(); pic.src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
+    await pic.decode().catch(() => {});
+    g.drawImage(pic, (W - 620) / 2, 300, 620, 620);
+    const serif = 'Fraunces, "Songti SC", "PingFang SC", serif', sans = 'Nunito, "PingFang SC", system-ui, sans-serif';
+    g.textAlign = 'center'; g.fillStyle = '#6c6676'; g.font = '600 40px ' + sans;
+    g.fillText(zh ? '今天被芝士监督学习了' : 'Chizu watched me study for', W / 2, 140);
+    g.fillStyle = '#3e3352'; g.font = '600 120px ' + serif;
+    g.fillText(hm(st.focusSec), W / 2, 270);
+    const days = lastDays(7), max = Math.max(1500, ...days.map(x => x.sec)), week = days.reduce((a, x) => a + x.sec, 0);
+    g.fillStyle = '#6c6676'; g.font = '600 34px ' + sans;
+    g.fillText((zh ? '本周 ' : 'This week ') + hm(week) + (st.streak ? (zh ? ' · 连续 ' + st.streak + ' 天' : ' · ' + st.streak + '-day streak') : ''), W / 2, 990);
+    const bw = 64, gap = 36, x0 = (W - (7 * bw + 6 * gap)) / 2, base = 1190;
+    days.forEach((x, i) => {
+      const h = Math.max(6, Math.round(x.sec / max * 130)), bx = x0 + i * (bw + gap);
+      g.fillStyle = x.d === today() ? '#3e3352' : '#c9bdf0'; g.beginPath(); g.roundRect(bx, base - h, bw, h, 12); g.fill();
+      g.fillStyle = '#a9a4b0'; g.font = '600 24px ' + sans;
+      g.fillText(new Date(x.d + 'T12:00').toLocaleDateString(zh ? 'zh-CN' : 'en-US', {weekday: 'short'}), bx + bw / 2, base + 36);
+    });
+    g.fillStyle = '#8c74d4'; g.font = '700 28px ' + sans;
+    g.fillText('Chizu · lemofyz.github.io/chizu', W / 2, H - 40);
+    return c;
+  }
+  $('shareBtn').onclick = async () => {
+    const c = await makeCard();
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    const file = new File([blob], 'chizu-study.png', {type: 'image/png'});
+    if (navigator.canShare && navigator.canShare({files: [file]})) {
+      try { await navigator.share({files: [file]}); return; } catch(_) {}
+    }
+    const url = URL.createObjectURL(blob);
+    $('shareImg').src = url; $('shareDl').href = url; $('shareView').hidden = false; openSheet('');
+  };
+  $('shareClose').onclick = () => { $('shareView').hidden = true; };
+
   // She chats on her own: every minute or so when you're idle, every few minutes during focus.
   let quietUntil = Date.now() + 40000;
   const _say = say; say = k => { quietUntil = Date.now() + 25000; _say(k); };
@@ -453,5 +576,7 @@
   }
   render();
 </script>
+<script src="study-config.js"></script>
+<script type="module" src="study.js"></script>
 </body>
 </html>
