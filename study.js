@@ -135,7 +135,7 @@ function renderFolders() {
   el('subjName').textContent = current()?.name || T('新科目', 'New subject');
   el('studyText').placeholder = T('跟芝士说点什么…', 'Talk to Chizu…');
   el('subjList').innerHTML = subjects.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) +
-    '<small>' + f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '') + '</small></button>').join('') +
+    '<small>' + T(f.cards + ' 张卡' + (f.due ? ' · ' + f.due + ' 张待复习' : ''), f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '')) + '</small></button>').join('') +
     '<button data-subj="">' + T('+ 新科目', '+ New subject') + '<small></small></button>';
   el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
     el('subjList').hidden = true;
@@ -282,7 +282,10 @@ function saveCacheSoon() {
   clearTimeout(cacheTimer);
   cacheTimer = setTimeout(async () => {
     const s = await session(); if (!s) return;
-    try { await call({ action: 'state', subjectId: subject }, { state: st => localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })) }); } catch (_) {}
+    try { await call({ action: 'state', subjectId: subject }, { state: st => {
+      localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st }));
+      if (!busy) { subjects = st.subjects || subjects; renderFolders(); }   // fresh card counts in the folder list
+    } }); } catch (_) {}
   }, 1500);
 }
 async function openStudy() {
