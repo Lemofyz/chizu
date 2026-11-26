@@ -452,9 +452,12 @@
     next.dataset.kind = head ? 'head' : 'body';
     const from = curKey; curKey = key;
     next.onended = null; next.ontimeupdate = null; next.loop = loop; next.src = src; next.currentTime = 0;
+    // Ask it to play right away: iOS only loads a video once play() is called, so waiting for it to load first never ends.
+    // It is muted (allowed to start by itself) and still invisible, so starting early shows nothing yet.
+    const started = next.play().catch(() => {});
     if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 4000); });
-    if (next.readyState < 2) { curKey = from; return prev; }  // not loaded yet: keep what is showing rather than a blank frame
-    try { await next.play(); } catch(_){}
+    if (next.readyState < 2) { next.pause(); curKey = from; return prev; }  // not loaded yet: keep what is showing rather than a blank frame
+    await started;
     prev.onended = null; prev.ontimeupdate = null;
     next.style.zIndex = 2; prev.style.zIndex = 1;
     // Returning to her loop: glide the last frame onto her resting pose while the loop eases in from where she was,
