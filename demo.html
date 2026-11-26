@@ -120,8 +120,6 @@
   body.studying .frame .bubble{display:none}
   body.studying #pic{-webkit-mask-image:none;mask-image:none}
   body.studying .bar,body.studying .state,body.studying .reserve{opacity:0;pointer-events:none}
-  body.studying .frame.talking #pic{animation:talk .5s ease-in-out infinite}
-  @keyframes talk{50%{transform:translateY(-3%) scale(1.03)}}
   #studySheet{display:none}
   body.studying #studySheet{display:flex;flex-direction:column;position:fixed;z-index:5;left:50%;transform:translateX(-50%);top:calc(max(12px,env(safe-area-inset-top)) + 64px);bottom:max(16px,env(safe-area-inset-bottom));width:min(640px,94vw);max-height:none;background:transparent;border:0;box-shadow:none;padding:0;pointer-events:none;animation:fadein .4s ease}
   @keyframes fadein{from{opacity:0}to{opacity:1}}

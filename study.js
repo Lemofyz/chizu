@@ -142,7 +142,7 @@ async function run(body, userText) {
   act('h_think');
   try {
     state = await stream(body, chunk => {
-      if (!her) { her = bubble('her', ''); her.classList.add('pop'); frame.classList.add('talking'); }
+      if (!her) { her = bubble('her', ''); her.classList.add('pop'); }
       text += chunk; her.innerHTML = fmt(text); el('studyLog').scrollTop = 1e9;
       if (!acted) {
         const m = text.match(/\*([^*\n]+)\*/);
@@ -156,7 +156,7 @@ async function run(body, userText) {
   } catch (e) {
     if (!her) her = bubble('her', ''); her.className = 'msg err pop'; her.textContent = e.message; act('idle');
     if (/free questions/.test(e.message)) { say('treat'); }
-  } finally { sending = false; setBusy(false); frame.classList.remove('talking'); }
+  } finally { sending = false; setBusy(false); }
 }
 function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost', 'studyMic']) el(id).disabled = b; }
 
