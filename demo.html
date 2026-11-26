@@ -275,9 +275,10 @@
 <div class="sheet" id="foodSheet" role="dialog" aria-label="Feed Chizu">
   <button class="close" data-close>×</button>
   <h3>Snack time</h3>
-  <p>Every focus session with her catches a fish. Finish without touching your phone and you catch two.</p>
+  <p>Focus with her and she catches fish: 5 minutes = 1 fish, up to 30 a day. Fish feed her and pay for new study questions (1 each; reviews are free).</p>
   <div class="items">
     <div class="item"><span class="ic">🐟</span><span><b>Fish</b><small>Caught by focusing · you have <span id="fishN2">0</span></small></span><button id="feedFish">Feed</button></div>
+    <div class="item locked" id="fishShop"><span class="ic">🧺</span><span><b>A bucket of fish</b><small>Top up for studying · coming soon</small></span><button>Shop · soon</button></div>
     <div class="item locked" data-treat="sushi"><span class="ic">🍣</span><span><b>Salmon nigiri</b><small>Her favourite. New happy dance.</small></span><button>Shop · soon</button></div>
     <div class="item locked" data-treat="cake"><span class="ic">🍰</span><span><b>Strawberry cake</b><small>Party hat included.</small></span><button>Shop · soon</button></div>
     <div class="item locked" data-treat="pudding"><span class="ic">🍮</span><span><b>Pudding</b><small>Wobbles. She loves that.</small></span><button>Shop · soon</button></div>
@@ -620,7 +621,7 @@
   }, 1000);
   function finish(){
     const perfect = pickups === 0;
-    st.fish += perfect ? 2 : 1;
+    if (!serverFish) st.fish += perfect ? 2 : 1;   // signed in, the server pays out focus fish (via chizuSync)
     if (sess) { window.chizuSync?.(sess); sess = null; }
     left = total; timeEl.textContent = fmt(left); stop('');
     say(perfect ? 'cheer2' : 'cheer'); act('hop'); fxCenter('🐟'); if (perfect) setTimeout(() => fxCenter('🐟'), 300);
@@ -764,15 +765,20 @@
   };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
   $('foodBtn').onclick = () => { settleHunger(); render(); openSheet($('foodSheet').classList.contains('open') ? '' : 'foodSheet'); };
-  $('feedFish').onclick = () => {
+  $('feedFish').onclick = async () => {
     if (busy || changing) return;
     settleHunger();
     if (st.full >= 3) return say('full');
     if (st.fish <= 0) return say('nofish');
-    st.fish--; st.full++; st.fedAt = Date.now();
+    if (serverFish) { const r = await window.chizuFeed?.(); if (r !== 'ok') return say('nofish'); }   // the server spends it
+    else st.fish--;
+    st.full++; st.fedAt = Date.now();
     save(); openSheet(''); say('eat'); act('eat'); fxCenter('🐟');
   };
   document.querySelectorAll('.item.locked').forEach(el => el.onclick = () => say('treat'));
+  // Signed in, her fish live on the server (study.js reports the balance); signed out they stay on this device.
+  let serverFish = false;
+  window.chizuWallet = n => { serverFish = true; st.fish = n; save(); render(); };
   setInterval(() => { settleHunger(); render(); if (!running && !busy && st.full === 0 && Math.random() < 0.3) say('peckish'); }, 180000);
 
   // ---------- Daily reminder (works while the page is open) ----------
@@ -970,6 +976,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=41"></script>
+<script type="module" src="study.js?v=42"></script>
 </body>
 </html>

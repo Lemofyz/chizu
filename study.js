@@ -120,7 +120,7 @@ function speechSoFar(t) {   // hold back anything after a lone * that may still 
 }
 
 // ---------- What is on screen ----------
-let subjects = [], subject = localStorage.getItem('chizu_subject') || null, question = null, freeLeft = null;
+let subjects = [], subject = localStorage.getItem('chizu_subject') || null, question = null;
 let busy = false, paused = false, pick = null;
 const current = () => subjects.find(s => s.id === subject) || null;
 const zh = () => (current()?.language || (/^zh/i.test(navigator.language) ? 'zh' : 'en')) === 'zh';
@@ -178,8 +178,8 @@ function showVerdict(v) {
 }
 function applyState(st, full = true) {
   subjects = st.subjects || [];
+  if (st.fish != null) window.chizuWallet?.(st.fish);
   if (subject && !subjects.some(s => s.id === subject)) setSubject(null); else renderFolders();
-  freeLeft = st.freeLeft;
   if (full) {
     log().innerHTML = '';
     if (!st.messages?.length) bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions."));
@@ -235,7 +235,8 @@ async function turn(body, userText, quiet = false) {
       },
       subject: s => { if (!subjects.some(x => x.id === s.id)) subjects.push({ ...s, cards: 0, due: 0 }); setSubject(s.id); paused = false; },
       state: st => applyState(st, false),
-      limit: () => say('treat'),
+      wallet: v => window.chizuWallet?.(v.fish),
+      nofish: () => { window.chizuWallet?.(0); act('h_frown'); },
       pause: () => { paused = true; },
     });
     endBubble();
@@ -367,6 +368,15 @@ window.chizuSync = async p => {
   const ended = new Date(), started = new Date(p.started);
   const seconds = Math.min(p.sec, Math.floor((ended - started) / 1000) + 1);
   try { await sb.rpc('save_study_session', { p_id: p.id, p_started: p.started, p_ended: ended.toISOString(), p_seconds: seconds, p_skill: null }); } catch (_) {}
+  // The same session earns fish on the server: 5 minutes = 1, counted once.
+  try { await call({ action: 'focus', sessionId: p.id, started: p.started, seconds }, { wallet: v => window.chizuWallet?.(v.fish) }); } catch (_) {}
+};
+// Feeding her spends a fish on the server. 'ok', 'nofish', or null when signed out.
+window.chizuFeed = async () => {
+  if (!(await session())) return null;
+  let r = 'nofish';
+  try { await call({ action: 'feed' }, { wallet: v => { r = 'ok'; window.chizuWallet?.(v.fish); }, nofish: () => window.chizuWallet?.(0) }); } catch (_) { r = null; }
+  return r;
 };
 // 25 minutes of studying in the chat: a gentle break reminder.
 window.chizuBreak = () => { bubble('her pop', T('学了 25 分钟啦喵！伸个懒腰，喝口水，再继续～', "That's 25 minutes, meow! Stretch, drink some water, then we'll keep going.")); act('h_happy'); };
@@ -375,3 +385,5 @@ window.chizuDebug = { show: st => applyState(st, true), card: q => showQuestion(
 
 // Coming back from Google sign-in opens the study sheet straight away.
 if (await finishSignIn()) openStudy();
+// Signed in: show her fish from the server.
+else if (await session()) call({ action: 'wallet' }, { wallet: v => window.chizuWallet?.(v.fish) }).catch(() => {});
