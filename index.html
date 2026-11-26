@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <script>if(location.protocol==='http:'&&location.hostname==='chizu.vubeing.com')location.replace('https://'+location.host+location.pathname+location.search+location.hash)</script>
+<!-- Meta pixel (vubeing-web 1138992045552088): page views, checkouts started and purchases, so Instagram ads can find buyers. -->
+<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1138992045552088');fbq('track','PageView');</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -290,7 +292,7 @@
         say('Someone got in just before you. Your spot is #' + j.seat.pos + ' · $' + j.seat.price + ', held for 30 minutes.', false);
         $('resLabel').textContent = 'Continue: pay $' + j.seat.price + ' for Chizu No.' + pad(j.seat.no); return;
       }
-      if (j.url) { location.href = j.url; return; }
+      if (j.url) { window.fbq?.('track', 'InitiateCheckout', { value: j.seat?.price ?? 0, currency: 'USD', content_name: 'Chizu' }); location.href = j.url; return; }
       if (j.seat?.status === 'paid') { showDone(j.seat); loadLine(); }
     } catch (err) { say(err.message, true); await loadLine(); showPicker(); }
     finally { $('resBtn').disabled = false; }
@@ -310,7 +312,10 @@
     if (!session) return;
     if (q.get('paid')) {   // Stripe sends people back before its confirmation reaches us: wait a moment for it
       history.replaceState(null, '', location.pathname + '#reserve'); say('Confirming your payment…');
-      for (let i = 0; i < 15; i++) { const j = await call({ action: 'seat' }); if (j.seat?.status === 'paid') { say(''); showDone(j.seat); loadLine(); return; } await new Promise(r => setTimeout(r, 1500)); }
+      for (let i = 0; i < 15; i++) { const j = await call({ action: 'seat' }); if (j.seat?.status === 'paid') { say(''); showDone(j.seat); loadLine();
+        // One purchase event per paid spot (free spot #1 is not a purchase).
+        if (j.seat.price > 0 && !localStorage.getItem('chizu_px_' + j.seat.pos)) { localStorage.setItem('chizu_px_' + j.seat.pos, '1'); window.fbq?.('track', 'Purchase', { value: j.seat.price, currency: 'USD', content_name: 'Chizu No.' + pad(j.seat.no) }); }
+        return; } await new Promise(r => setTimeout(r, 1500)); }
       return say('Your payment is still being confirmed. Refresh in a minute.');
     }
     if (q.get('cancel')) { history.replaceState(null, '', location.pathname + '#reserve'); say('Payment cancelled. Your spot is held for 30 minutes if you want to finish.'); }
