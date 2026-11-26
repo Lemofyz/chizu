@@ -291,6 +291,7 @@ const next = () => subject && !paused && turn({ action: 'next', subjectId: subje
 
 function choose(q, i, c) {
   if (busy || pick != null || c !== cardEl) return;
+  window.posthog?.capture('question_answered', { kind: 'mcq' });
   pick = i; c.querySelectorAll('.choices button')[i].className = 'picked';
   turn({ action: 'answer', questionId: q.id, choice: i }, 'ABCD'[i] + ') ' + q.options[i]);
 }
@@ -322,6 +323,7 @@ function saveCacheSoon() {
   }, 1500);
 }
 async function openStudy() {
+  window.posthog?.capture('study_opened');
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
