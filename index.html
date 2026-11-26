@@ -150,11 +150,10 @@
       <h2>The earlier you come, the less you pay.</h2>
       <p class="lead">The demo is free forever. The full Chizu is yours for life: she keeps you on track every time you study, and every new thing we build to help you grow is included, starting with voice and video calls (coming soon). You also get a numbered adoption certificate with your name. Outfits are sold separately. No.0001 is free. Every Chizu after that costs $1 more than the one before. Your number and your price are locked the moment you reserve.</p>
       <form class="res" id="res">
-        <input type="email" id="email" name="email" required placeholder="Email" aria-label="Email">
         <input type="text" id="name" name="name" maxlength="24" placeholder="Name for your certificate (optional)" aria-label="Name for your certificate">
-        <button class="btn" type="submit" id="resBtn"><span>Reserve No.<span data-nextno>0001</span> for <span data-price>Free</span></span></button>
+        <button class="btn" type="submit" id="resBtn"><span>Reserve No.<span data-nextno>0001</span> for <span data-price>Free</span> with Google</span></button>
       </form>
-      <p class="fine">Reserving is free. Checkout opens on <b data-paydate>December 3</b>. We'll email you a link to pay your locked price then. If you change your mind, just don't pay.</p>
+      <p class="fine">Reserving is free: sign in with Google (one per account) and your number and price are locked. Checkout opens on <b data-paydate>December 3</b>. We'll email you a link to pay your locked price then. If you change your mind, just don't pay.</p>
       <div class="done-box" id="done">
         <div class="eyebrow">You're on the list</div>
         <b id="doneNo">No.0001</b>
@@ -172,7 +171,7 @@
     <div class="faq">
       <details><summary>What's free and what's in the full version?</summary><p>The free demo stays free: pat her, play with her, focus with her, feed her, and study a few questions a day with her. The full version is a one-time purchase, no subscription, and it's yours for life: unlimited study time with her keeping you on track, voice and video calls with her (coming soon), every future feature that helps you grow, and your numbered certificate.</p></details>
       <details><summary>Are outfits included?</summary><p>No. Outfits are sold separately, so you only pay for the looks you love. You can try pajamas on in the demo.</p></details>
-      <details><summary>Why does the price go up?</summary><p>To thank the people who believed in her first. No.0001 is free, No.0002 is $1, No.0003 is $2, and so on. Your price never changes after you reserve.</p></details>
+      <details><summary>Why does the price go up?</summary><p>To thank the people who believed in her first. No.0001 is free, then each one is $1 more, up to $100 at No.0101. After that the price rises $10 for every 1,000 sold. Your price never changes after you reserve.</p></details>
       <details><summary>Is there a real plush?</summary><p>Not yet. If enough people want one, a small physical Chizu is next. Reservation holders hear first.</p></details>
       <details><summary>Is she AI?</summary><p>Her looks and moves are animations. When she helps you study, and on calls, she is powered by AI. She's a digital being made by vubeing, not a person.</p></details>
       <details><summary>Who's behind this?</summary><p>vubeing, a small team that makes digital beings. Questions: hello@vubeing.com</p></details>
@@ -182,13 +181,17 @@
 
 <footer><div class="wrap"><span>© 2026 vubeing</span><span>Chizu is based on a real cat named Cheese.</span></div></footer>
 
-<script>
+<script src="study-config.js"></script>
+<script type="module">
   // Filled in from Codex's Google Form setup (vubeing/lunini-site/chizu_form_ids.txt).
   const FORM = {action:'https://docs.google.com/forms/d/e/1FAIpQLSf0e8iR-Y9uDjSchTy-pJD9b9oa7A-W0VcIbHu3ZItRmcpOXg/formResponse', email:'entry.1607934200', name:'entry.587635590', source:'entry.591437990'};
-  const CSV  = '';
+  // Numbers and locked prices come from the database (chizu_reserve), one per Google account.
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+  const sb = createClient(CHIZU_STUDY.url, CHIZU_STUDY.key, { auth: { flowType: 'pkce', detectSessionInUrl: false, persistSession: true, autoRefreshToken: true, storageKey: 'chizu-study-auth' } });
   const PAY_DATE = 'December 3';
   const pad = n => String(n).padStart(4,'0');
-  const priceOf = no => no - 1;
+  // Same ladder as chizu_price in the database: free, +$1 each up to $100 at No.101, then +$10 for every 1,000 sold.
+  const priceOf = no => no <= 101 ? no - 1 : 100 + 10 * Math.floor((no - 101) / 1000);
   const priceLabel = no => priceOf(no) === 0 ? 'Free' : '$' + priceOf(no);
   let reserved = 0;
 
@@ -207,33 +210,49 @@
   }
 
   async function loadCount(){
-    if (!CSV) return render();
-    try {
-      const t = await (await fetch(CSV + (CSV.includes('?') ? '&' : '?') + 't=' + Date.now())).text();
-      // The published sheet holds only one cell: the number of reservations.
-      reserved = Math.max(0, parseInt(t.trim().split(/[\n,]/)[0].replace(/"/g,''), 10) || 0);
-    } catch (_) {}
+    try { const { data } = await sb.rpc('chizu_reservation_count'); if (Number.isInteger(data)) reserved = data; } catch (_) {}
     render();
   }
 
-  document.getElementById('res').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('resBtn'); btn.disabled = true;
-    await loadCount();
-    const no = reserved + 1;
-    if (FORM.action) {
-      const body = new URLSearchParams();
-      body.append(FORM.email, document.getElementById('email').value.trim());
-      body.append(FORM.name, document.getElementById('name').value.trim());
-      body.append(FORM.source, (location.search || 'direct').slice(0, 80));
-      try { await fetch(FORM.action, {method:'POST', mode:'no-cors', body}); } catch (_) {}
-    }
+  function showDone(no, price){
     document.getElementById('res').style.display = 'none';
     document.getElementById('doneNo').textContent = 'No.' + pad(no);
-    document.getElementById('donePrice').textContent = 'Your locked price: ' + priceLabel(no) + '.';
+    document.getElementById('donePrice').textContent = 'Your locked price: ' + (price === 0 ? 'Free' : '$' + price) + '.';
     document.getElementById('done').style.display = 'block';
-    reserved = no; render();
+  }
+  async function reserve(name){
+    const { data, error } = await sb.rpc('chizu_reserve', { p_name: name, p_source: (sessionStorage.getItem('chizu_src') || location.search || 'direct').slice(0, 80) });
+    if (error || !data?.[0]) { alert('Reserving didn\'t go through. Please try again.'); return; }
+    const { no, price } = data[0];
+    // Backup copy in the Google Form sheet.
+    const { data: { session } } = await sb.auth.getSession();
+    if (FORM.action && session) {
+      const body = new URLSearchParams();
+      body.append(FORM.email, session.user.email || ''); body.append(FORM.name, name); body.append(FORM.source, 'No.' + pad(no) + ' $' + price);
+      try { await fetch(FORM.action, {method:'POST', mode:'no-cors', body}); } catch (_) {}
+    }
+    showDone(no, price); await loadCount();
+  }
+  document.getElementById('res').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) return reserve(name);
+    // Sign in with Google first; the reservation finishes when they come back.
+    sessionStorage.setItem('chizu_reserve_name', name);
+    if (location.search) sessionStorage.setItem('chizu_src', location.search);
+    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
   });
+  // Back from Google: finish the reservation they started.
+  (async () => {
+    const code = new URLSearchParams(location.search).get('code');
+    if (code) {
+      history.replaceState(null, '', location.pathname + '#reserve');
+      await sb.auth.exchangeCodeForSession(code);
+      const name = sessionStorage.getItem('chizu_reserve_name');
+      if (name !== null) { sessionStorage.removeItem('chizu_reserve_name'); await reserve(name); document.getElementById('reserve').scrollIntoView(); }
+    }
+  })();
 
   // Use her looping video once it exists; the photo stays as the poster until then.
   const v = document.getElementById('heroVid');
