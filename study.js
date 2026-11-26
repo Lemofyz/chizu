@@ -292,6 +292,7 @@ async function run(body, userText, quiet = false) {
       }
     });
     if (pace) { const rest = speech(text); if (rest.length > shown) pace.push(rest.slice(shown)); pace.end(); await pace.finished; }
+    session().then(s => s && writeCache(s.user.id));
     render(false);
     return text;
   } catch (e) {
@@ -379,34 +380,26 @@ document.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => {
 });
 
 // ---------- Open the sheet ----------
+const CACHE = 'chizu_state_cache';
+function readCache(user) { try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); return c && c.user === user ? c.state : null; } catch (_) { return null; } }
+function writeCache(user) { try { localStorage.setItem(CACHE, JSON.stringify({ user, state })); } catch (_) {} }
 async function openStudy() {
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   if (!s) return;
   sid = await chizuSessionId(s.user.id);
+  // Show the last conversation instantly from this device, then refresh it from the server in the background.
+  const cached = readCache(s.user.id);
+  if (cached) { state = cached; render(true); }
   try {
-    state = await loadState(); render(true);
+    state = await loadState(); writeCache(s.user.id); render(true);
     // Opening study starts right away for someone who has studied before; a new learner is asked what to learn.
     if (inSession(L().questions).length) keepGoing(800);
   } catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
-// Swipes: on the main screen, swipe up to start studying; in the chat, swipe up past the newest message to go back to her.
-let touch = null;
-document.addEventListener('touchstart', e => {
-  const t = e.touches[0], log = el('studyLog');
-  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 6;
-  touch = { x: t.clientX, y: t.clientY, atBottom, inLog: log.contains(e.target), onControl: !!e.target.closest('button, input, a, .sheet:not(#studySheet), .celebrate, .shareview') };
-}, { passive: true });
-document.addEventListener('touchend', e => {
-  if (!touch) return;
-  const t = e.changedTouches[0], dy = t.clientY - touch.y, dx = t.clientX - touch.x, start = touch; touch = null;
-  if (dy > -70 || Math.abs(dx) > 60) return;  // only a clear upward swipe
-  const studying = document.body.classList.contains('studying');
-  if (!studying && !start.onControl && !document.querySelector('.sheet.open')) openStudy();
-  else if (studying && start.inLog && start.atBottom) openSheet('');
-}, { passive: true });
+// Swipes between her main screen and the chat follow the finger; they live in demo.html (dragToggle).
 
 // Tapping her small head (or Escape) brings her back to the middle of the screen.
 // Tapping her small head opens her menu (Hint / Upload a file / I'm tired). Leaving study is the × or a swipe.
