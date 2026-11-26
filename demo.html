@@ -87,6 +87,7 @@
   .log{flex:1;min-height:120px;max-height:38vh;overflow:auto;display:grid;gap:.5rem;margin:.7rem 0 .2rem;padding-right:.2rem;user-select:text;-webkit-user-select:text}
   .msg{font-size:.9rem;line-height:1.5;padding:.55rem .8rem;border-radius:14px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}
   .msg.me{justify-self:end;background:var(--deep);color:#fff}
+  .act{color:#9a94a3;font-style:italic}
   .msg.her{justify-self:start;background:var(--tint);color:var(--ink)}
   .msg.err{justify-self:start;background:#fff4f0;color:#8a3b22}
   .qcard{border:1px solid var(--line);border-radius:14px;padding:.7rem .8rem;margin-top:.5rem;user-select:text;-webkit-user-select:text}
@@ -355,7 +356,8 @@
   const bubble = $('bubble'); let bt;
   let say = function(key){
     const a = (st.outfit === 'pj' && LINES_PJ[key]) || LINES[key]; if (!a) return;
-    bubble.textContent = a[Math.floor(Math.random() * a.length)];
+    const line = a[Math.floor(Math.random() * a.length)];
+    bubble.innerHTML = line.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c])).replace(/\*([^*]+)\*/g, '<span class="act">$1</span>');
     bubble.classList.add('show'); clearTimeout(bt); bt = setTimeout(() => bubble.classList.remove('show'), 3400);
   }
   const frame = $('frame');

@@ -81,7 +81,8 @@ async function stream(body, onText) {
 
 // ---------- Rendering ----------
 const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const fmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+// **bold**, and *her actions* in soft grey italics (later these can trigger her animations).
+const fmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*([^*\n]+)\*/g, '<span class="act">$1</span>');
 let katexReady = null;
 function math(node) {
   katexReady ??= new Promise(res => {
