@@ -496,6 +496,8 @@
   async function actNow(name, fadeMs = 350){
     const pre = st.outfit === 'pj' ? 'pj_' : '';
     if (inStudy() && name === 'idle') name = 'h_blink';
+    // Face close-ups belong to study mode only; a leftover queued one never shows as a giant face on her main screen.
+    if (!inStudy() && name.startsWith('h_')) name = 'idle';
     // In study mode she stays a small round face: whole-body moves become face expressions.
     if (inStudy() && !name.startsWith('h_') && !LOOPS.includes(name)) name = name === 'tail' ? 'h_ears' : 'h_happy';
     const head = name.startsWith('h_');
@@ -648,6 +650,7 @@
     sheets.forEach(s => s.classList.toggle('open', s.id === id));
     const was = inStudy(), now = id === 'studySheet';
     document.body.classList.toggle('studying', now);
+    if (!now) document.body.classList.remove('thinking', 'touring');
     if (was !== now) { if (now) HEADS.forEach(h => hasClip((st.outfit === 'pj' ? 'pj_' : '') + h)); busy = false; act('idle', 500); }
   };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
