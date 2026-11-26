@@ -131,7 +131,7 @@
   .frame img{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
   .frame video{transition:opacity .35s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
   .stage{transition:padding .55s cubic-bezier(.2,.8,.2,1)}
-  body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 104px)}
+  body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 66px)}
   body.studying .frame{width:108px;border-radius:50%;overflow:hidden;box-shadow:0 10px 30px rgba(62,51,82,.18);background:#fefefe;z-index:6}
   body.studying .frame img,body.studying .frame video{transform:scale(1.85);transform-origin:50% 34%}
   body.studying .frame video[data-kind=head]{transform:scale(1.08)}
@@ -152,7 +152,7 @@
   #studyMain{display:flex;flex-direction:column;flex:1;min-height:0}
   #studyMain[hidden]{display:none}
   body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
-  .avatarSpace{height:124px;flex:none;pointer-events:none}
+  .avatarSpace{height:116px;flex:none;pointer-events:none}
   /* Subject folders: switch what you're studying; cards file themselves under subject and topic. */
   .subjbar{position:absolute;top:-6px;left:0;z-index:3}
   .subjbar > button{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.4rem .8rem;font-weight:700;font-size:.85rem;color:var(--deep);cursor:pointer;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -163,7 +163,7 @@
   .folder{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lav);margin:.6rem 0 .1rem}
   /* Tapping her small head opens this menu just above her. */
   /* Her menu: separate little speech bubbles that pop out of her upper right, nearest first. */
-  .chizumenu{position:fixed;z-index:7;left:min(calc(50% + 42px),calc(100vw - 196px));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 192px);display:flex;flex-direction:column;align-items:flex-start;gap:.4rem}
+  .chizumenu{position:fixed;z-index:7;left:min(calc(50% + 42px),calc(100vw - 196px));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 154px);display:flex;flex-direction:column;align-items:flex-start;gap:.4rem}
   .chizumenu button{border:1px solid var(--line);border-radius:18px 18px 18px 6px;padding:.5rem .95rem;font-weight:700;font-size:.85rem;background:#fff;color:var(--deep);cursor:pointer;white-space:nowrap;
     box-shadow:0 8px 22px rgba(62,51,82,.14);transform-origin:0% 100%;animation:bubblein .34s cubic-bezier(.2,1.5,.4,1) both}
   .chizumenu button:nth-last-of-type(1){animation-delay:0ms}
@@ -176,8 +176,6 @@
   .chizumenu button:disabled{opacity:.5}
   body.studying.dropping .log{outline:2px dashed var(--lav);outline-offset:-6px;border-radius:16px}
   /* Like ChatGPT's orb: with no question card open the chat runs all the way down and she simply floats over it. */
-  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
-  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:16px;margin-bottom:.4rem}
   /* The input stays small: Send only appears once there is something to send. */
   #studyText:placeholder-shown:not(:focus) ~ #studySend{display:none}
   /* Waiting for her reply: a soft lavender ring circles her head. */
@@ -638,7 +636,7 @@
   const DRAG_IN = 260, DRAG_OUT = 380, COMMIT_IN = .33, COMMIT_OUT = .6;
   const SPRING = 'cubic-bezier(.2,.9,.25,1.12)';
   let drag = null, lastMove = 0;
-  function smallRect(){ const s = 108, bottom = Math.max(16, safeBottom) + 104; return {cx: innerWidth / 2, cy: innerHeight - bottom - s / 2, size: s}; }
+  function smallRect(){ const s = 108, bottom = Math.max(16, safeBottom) + 66; return {cx: innerWidth / 2, cy: innerHeight - bottom - s / 2, size: s}; }
   function bigRect(){ const s = Math.min(innerWidth * .92, innerHeight * .62); return {cx: innerWidth / 2, cy: innerHeight / 2, size: s}; }
   function rectOf(el){ const r = el.getBoundingClientRect(); return {cx: r.left + r.width / 2, cy: r.top + r.height / 2, size: r.width}; }
   function applyDrag(p, d = drag, animate = ''){
