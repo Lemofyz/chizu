@@ -5,6 +5,7 @@
 <!-- PostHog product analytics (vubeing project): page views and the claim/study funnel. No emails, no session recording. -->
 <script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https://us.i.posthog.com',person_profiles:'identified_only',disable_session_recording:true});posthog.register({app:'chizu',src:new URLSearchParams(location.search).get('src')||sessionStorage.getItem('chizu_src')||'direct'});</script>
+<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1138992045552088');fbq('track','PageView');</script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -278,6 +279,15 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     .sheet{transition:none}#todayBtn.pop,.choices button.right{animation:none}}
   @keyframes fadeonly{from{opacity:0}}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .own{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));z-index:60;width:min(92vw,340px);background:#fff;border:1px solid var(--line,#ece9f1);border-radius:20px;box-shadow:0 12px 40px rgba(38,34,46,.14);padding:14px 16px 16px;opacity:0;transform:translate(-50%,12px) scale(.98);transition:transform .28s cubic-bezier(.23,1,.32,1),opacity .2s ease-out;pointer-events:none}
+  .own.in{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+  .own b{font-family:Fraunces,serif;font-size:1.15rem;display:block;margin-bottom:.2rem}
+  .own p{margin:0 0 .75rem;color:var(--soft,#6c6676);font-size:.9rem;line-height:1.45}
+  .own-btn{display:block;text-align:center;background:#3e3352;color:#fff;border-radius:999px;padding:.7rem 1rem;font-weight:700;text-decoration:none;transition:transform .12s ease-out}
+  .own-btn:active{transform:scale(.97)}
+  .own-x{position:absolute;top:6px;right:8px;border:0;background:none;font-size:1.3rem;color:var(--soft,#6c6676);width:36px;height:36px;cursor:pointer}
+  body.studying .own{display:none}
+  @media (prefers-reduced-motion:reduce){.own{transition:opacity .2s;transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
@@ -605,6 +615,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     if (kind === 'pat' || kind === 'hug') { st.pats++; save(); }
     say(kind);
     act(kind);
+    window.chizuOwnNudge?.();
   }
 
   // ---------- Focus (time only counts while she is on screen) ----------
@@ -1044,5 +1055,40 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
 <script type="module" src="study.js?v=46"></script>
+<div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
+  <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
+  <b id="ownT">Keep her for life?</b>
+  <p id="ownP">A one-time purchase, no subscription. Full refund anytime before launch.</p>
+  <a class="own-btn" id="ownBtn" href="index.html#reserve">See your number</a>
+</div>
+<script>
+// Counts the visit by source (same as the homepage), then after a little play offers the next spot once per session.
+(() => {
+  const C = window.CHIZU_STUDY; if (!C) return;
+  const H = { apikey: C.key, Authorization: 'Bearer ' + C.key, 'Content-Type': 'application/json' };
+  const rpc = (fn, body) => fetch(C.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: H, body: JSON.stringify(body || {}) }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const SRC = (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('chizu_src') || 'direct').replace(/[^\w-]/g, '').slice(0, 40);
+  sessionStorage.setItem('chizu_src', SRC);
+  if (!sessionStorage.getItem('chizu_counted')) { sessionStorage.setItem('chizu_counted', '1'); rpc('chizu_visit', { p_src: SRC }); }
+  const el = document.getElementById('own'); let taps = 0, shown = false;
+  async function show(){
+    if (shown || window.chizuNo || sessionStorage.getItem('chizu_own_seen') || document.body.classList.contains('studying')) return;
+    shown = true; sessionStorage.setItem('chizu_own_seen', '1');
+    const l = (await rpc('chizu_line') || [])[0];
+    if (l) {
+      const no = String(l.next_pos).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
+      document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Each next spot costs $1 more. One-time purchase, no subscription, full refund before launch.';
+      document.getElementById('ownBtn').textContent = 'Claim No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
+    }
+    el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+    window.posthog?.capture('own_nudge_shown', { next_price: l?.next_price });
+  }
+  const hide = () => { el.classList.remove('in'); setTimeout(() => { el.hidden = true; }, 280); };
+  document.getElementById('ownX').addEventListener('click', () => { hide(); window.posthog?.capture('own_nudge_closed'); });
+  document.getElementById('ownBtn').addEventListener('click', () => window.posthog?.capture('own_nudge_clicked'));
+  window.chizuOwnNudge = () => { if (++taps >= 4) show(); };
+  setTimeout(() => { if (document.visibilityState === 'visible') show(); }, 45000);
+})();
+</script>
 </body>
 </html>
