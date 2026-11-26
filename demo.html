@@ -647,7 +647,13 @@
     sheets.forEach(s => s.classList.toggle('open', s.id === id));
     const was = inStudy(), now = id === 'studySheet';
     document.body.classList.toggle('studying', now);
-    if (!now) document.body.classList.remove('thinking');
+    if (!now) {
+      document.body.classList.remove('thinking');
+      // Leaving study: hide the face close-up at once, so it isn't blown up while her frame grows back (the still photo shows meanwhile).
+      if (was) vids.forEach(v => { if (v.dataset.kind === 'head') { v.style.transition = 'none'; v.classList.remove('on'); v.pause(); } });
+      // The still photo was zoomed on her face in study; snap it back to her whole body instead of shrinking through a giant face.
+      if (was) { img.style.transition = 'none'; setTimeout(() => { img.style.transition = ''; }, 700); }
+    }
     if (was !== now) { if (now) loadQueue(HEADS.map(h => (st.outfit === 'pj' ? 'pj_' : '') + h)); busy = false; act('idle', 500); }
   };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
