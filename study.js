@@ -149,49 +149,82 @@ function renderFolders() {
 el('subjBtn').onclick = e => { e.stopPropagation(); el('subjList').hidden = !el('subjList').hidden; };
 document.addEventListener('click', e => { if (!e.target.closest('#subjBar')) el('subjList').hidden = true; });
 
+// ---------- Question cards live in the conversation: they scroll with it and stay as a record ----------
+let cardEl = null;   // the card of the open question
+function makeCard(q, animate = true) {
+  const c = document.createElement('div'); c.className = 'qcard' + (animate ? ' enter' : ''); c.dataset.q = q.id;
+  c.innerHTML = '<div class="qprompt"><span class="qtag">' + esc(q.tag || '') + '</span>' + fmt(q.prompt) + '</div><div class="choices"></div>';
+  const box = c.querySelector('.choices');
+  (q.options || []).forEach((o, i) => { const b = document.createElement('button'); b.innerHTML = '<b>' + 'ABCD'[i] + '</b>' + fmt(o); box.appendChild(b); });
+  if (q.done) markCard(c, { correct: q.correct, answerIndex: q.answerIndex }, q.chosen);
+  else {
+    [...box.children].forEach((b, i) => b.onclick = () => choose(q, i, c));
+    if (q.kind === 'frq') {
+      const row = document.createElement('div'); row.className = 'row typed';
+      row.innerHTML = '<input class="qAnswer" autocomplete="off"><button class="qCheck"></button>';
+      const input = row.querySelector('input'), check = row.querySelector('button');
+      input.placeholder = T('写下你的答案', 'Your answer'); check.textContent = T('提交', 'Check');
+      check.onclick = () => submitTyped(q, input);
+      input.onkeydown = e => { if (e.key === 'Enter') check.click(); };
+      c.appendChild(row);
+    }
+    const lost = document.createElement('div'); lost.className = 'row lostrow';
+    lost.innerHTML = '<button class="ghost qLost"></button>'; lost.firstChild.textContent = T('没看懂', "I don't get it"); lost.firstChild.onclick = hint;
+    c.appendChild(lost);
+  }
+  math(c); return c;
+}
+// An answered card: the pick turns green or soft red, the right option is shown, and its controls go away.
+function markCard(c, v, chosen) {
+  c.classList.add('done'); c.querySelectorAll('.typed,.lostrow').forEach(r => r.remove());
+  const btns = [...c.querySelectorAll('.choices button')];
+  btns.forEach(b => { b.disabled = true; b.onclick = null; });
+  if (chosen != null && btns[chosen]) btns[chosen].className = v.correct ? 'right' : 'wrong';
+  if (!v.correct && v.answerIndex != null && btns[v.answerIndex]) btns[v.answerIndex].className = 'right';
+}
 function showQuestion(q) {
   question = q;
-  const card = el('studyQ'), stick = atBottom();
-  card.hidden = !q;
-  if (!q) { card.dataset.q = ''; return; }
-  if (q.id !== card.dataset.q) { card.dataset.q = q.id; card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter'); }
-  el('qPrompt').innerHTML = '<span class="qtag">' + esc(q.tag || '') + '</span>' + fmt(q.prompt); math(el('qPrompt'));
-  const box = el('qChoices'); box.innerHTML = '';
-  (q.options || []).forEach((o, i) => {
-    const b = document.createElement('button'); b.innerHTML = '<b>' + 'ABCD'[i] + '</b>' + fmt(o);
-    b.onclick = () => choose(q, i);
-    box.appendChild(b);
-  });
-  math(box);
-  el('qTyped').hidden = q.kind !== 'frq';
-  el('qAnswer').placeholder = T('写下你的答案', 'Your answer');
-  el('qCheck').textContent = T('提交', 'Check');
-  el('qLost').textContent = T('没看懂', "I don't get it");
-  if (stick) log().scrollTop = 1e9;
+  if (!q) { cardEl = null; return; }
+  cardEl = log().querySelector('.qcard[data-q="' + q.id + '"]');
+  if (!cardEl) { cardEl = makeCard(q); log().appendChild(cardEl); }
+  toBottom();
 }
 function showVerdict(v) {
-  if (!question || question.id !== v.questionId) return;
-  const btns = [...el('qChoices').children];
-  btns.forEach(b => b.disabled = true);
-  if (pick != null && btns[pick]) btns[pick].className = v.correct ? 'right' : 'wrong';
-  if (!v.correct && v.answerIndex != null && btns[v.answerIndex]) btns[v.answerIndex].className = 'right';
+  if (!cardEl || cardEl.dataset.q !== v.questionId) return;
+  markCard(cardEl, v, pick);
 }
 function applyState(st, full = true) {
   subjects = st.subjects || [];
   if (st.fish != null) window.chizuWallet?.(st.fish);
   if (subject && !subjects.some(s => s.id === subject)) setSubject(null); else renderFolders();
   if (full) {
-    log().innerHTML = '';
-    if (!st.messages?.length) bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions."));
-    for (const m of st.messages || []) m.role === 'user' ? bubble('me', m.content) : staticMd('her', speech(m.content));
+    log().innerHTML = ''; cardEl = null;
+    // Messages and answered cards in the order they happened; the open question last.
+    const items = [...(st.messages || []).map(m => ({ at: m.at || '', m })), ...(st.history || []).map(c => ({ at: c.at, c })),
+      ...(st.question ? [{ at: st.question.at || '~', c: st.question }] : [])].sort((a, b) => a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
+    if (!items.length) bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions."));
+    for (const it of items) {
+      if (it.c) log().appendChild(makeCard(it.c, false));
+      else it.m.role === 'user' ? bubble('me', it.m.content) : staticMd('her', speech(it.m.content));
+    }
   }
   showQuestion(st.question);
-  log().scrollTop = 1e9;
+  toBottom();
 }
+// Her messages render a moment later (React), so scroll again once they have their height.
+function toBottom() { log().scrollTop = 1e9; requestAnimationFrame(() => requestAnimationFrame(() => { log().scrollTop = 1e9; })); setTimeout(() => { log().scrollTop = 1e9; }, 200); }
 
 // ---------- One turn: send, then show what comes back in order ----------
-function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
-const thinking = on => { if (on && !document.body.classList.contains('thinking')) { document.body.classList.add('thinking'); window.thinkStart?.(); } if (!on) document.body.classList.remove('thinking'); };
+function setBusy(b) {
+  for (const id of ['studySend', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b;
+  cardEl?.querySelectorAll('.qCheck,.qLost').forEach(x => x.disabled = b);
+}
+// Her thinking faces while the model writes; when it ends she goes back to blinking (a stopped clip would freeze her face).
+const thinking = on => {
+  const was = document.body.classList.contains('thinking');
+  if (on && !was) { document.body.classList.add('thinking'); window.thinkStart?.(); }
+  if (!on && was) { document.body.classList.remove('thinking'); act('idle'); }
+};
 
 async function turn(body, userText, quiet = false) {
   if (busy) return false;
@@ -245,7 +278,7 @@ async function turn(body, userText, quiet = false) {
   } catch (e) {
     endBubble();
     bubble('err pop', e.message); act('idle');
-    if (pick != null) { pick = null; showQuestion(question); }
+    if (pick != null) { cardEl?.querySelectorAll('.choices .picked').forEach(b => b.className = ''); pick = null; }
     return false;
   } finally {
     busy = false; setBusy(false); thinking(false);
@@ -255,19 +288,17 @@ async function turn(body, userText, quiet = false) {
 const refresh = () => turn({ action: 'state', subjectId: subject }, null, true);
 const next = () => subject && !paused && turn({ action: 'next', subjectId: subject });
 
-function choose(q, i) {
-  if (busy || pick != null) return;
-  pick = i; el('qChoices').children[i].className = 'picked';
+function choose(q, i, c) {
+  if (busy || pick != null || c !== cardEl) return;
+  pick = i; c.querySelectorAll('.choices button')[i].className = 'picked';
   turn({ action: 'answer', questionId: q.id, choice: i }, 'ABCD'[i] + ') ' + q.options[i]);
 }
-el('qCheck').onclick = () => {
-  const a = el('qAnswer').value.trim(); if (!question || !a || busy) return;
-  el('qAnswer').value = ''; el('qAnswer').blur();
-  turn({ action: 'answer', questionId: question.id, text: a }, a);
-};
-el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
+function submitTyped(q, input) {
+  const a = input.value.trim(); if (!a || busy || q.id !== question?.id) return;
+  input.value = ''; input.blur();
+  turn({ action: 'answer', questionId: q.id, text: a }, a);
+}
 const hint = () => question && turn({ action: 'hint', questionId: question.id }, T('给个提示', 'Hint, please.'));
-el('qLost').onclick = hint;
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t || busy) return;
   el('studyText').value = ''; el('studyText').blur();   // send closes the keyboard, like ChatGPT

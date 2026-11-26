@@ -169,8 +169,12 @@
   .avatarSpace{height:116px;flex:none;pointer-events:none}
   /* Like ChatGPT's orb: the chat runs all the way down behind her, so scrolling slides past her transparently;
      bottom padding parks the newest bubble just above her head. A question card keeps its own space above her. */
-  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
-  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:128px;margin-bottom:.4rem}
+  body.studying .log{padding-bottom:128px;margin-bottom:.4rem}
+  /* Question cards sit in the conversation and scroll with it; answered ones stay as a record. */
+  .log .qcard{flex:none;margin:.2rem 0;background:#fff}
+  .log .qcard.done{opacity:.9}
+  /* Her small round face sits over the bottom of the chat: the main screen's hint line would collide with it. */
+  body.studying .state{display:none}
   /* Subject folders: switch what you're studying; cards file themselves under subject and topic. */
   .subjbar{position:absolute;top:-6px;left:0;z-index:3}
   .subjbar > button{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:.4rem .8rem;font-weight:700;font-size:.85rem;color:var(--deep);cursor:pointer;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -308,13 +312,6 @@
   </div>
   <div id="studyMain" hidden>
     <div class="log" id="studyLog"></div>
-    <div class="qcard" id="studyQ" hidden>
-      <div class="qprompt" id="qPrompt"></div>
-      <div class="choices" id="qChoices"></div>
-      <div class="row" id="qTyped"><input id="qAnswer" placeholder="Your answer" autocomplete="off"><button id="qCheck">Check</button></div>
-      <div class="row"><button class="ghost" id="qLost">I don't get it</button></div>
-    </div>
-    <div class="avatarSpace" aria-hidden="true"></div>
     <div class="chizumenu" id="chizuMenu" hidden role="menu">
       <button id="mHint" role="menuitem">Hint</button>
       <button id="mUpload" role="menuitem">Upload a file</button>
@@ -498,7 +495,8 @@
     if (!document.body.classList.contains('thinking')) return;
     const opts = ['h_think', 'h_think2', 'h_think3'].filter(k => k !== thinkLast), k = opts[Math.floor(Math.random() * opts.length)];
     thinkLast = k;
-    act(k).then(() => { const v = vids[cur]; v.loop = false; v.onended = () => thinkStart(); });
+    // When this clip ends: the next thinking face, or back to blinking once she's done thinking (never a frozen last frame).
+    act(k).then(() => { const v = vids[cur]; v.loop = false; v.onended = () => document.body.classList.contains('thinking') ? thinkStart() : act('idle'); });
   };
   // Moves run one at a time: overlapping switches used to fight over the same video player and garble the picture.
   let actChain = Promise.resolve();
@@ -692,7 +690,7 @@
     if (changing || drag || e.touches.length > 1) return;
     const t = e.touches[0], studying = document.body.classList.contains('studying'), log = $('studyLog');
     const onControl = !!e.target.closest('button, input, a, .sheet:not(#studySheet), .celebrate, .shareview, .chizumenu, .subjbar, .qcard');
-    const fromChat = (log.contains(e.target) && log.scrollTop + log.clientHeight >= log.scrollHeight - 6) || frame.contains(e.target);
+    const fromChat = (log.contains(e.target) && !e.target.closest('button, input') && log.scrollTop + log.clientHeight >= log.scrollHeight - 6) || frame.contains(e.target);
     if (studying ? !fromChat : (onControl || document.querySelector('.sheet.open'))) { drag = null; return; }
     drag = {x: t.clientX, y: t.clientY, toStudy: !studying, from: studying ? smallRect() : bigRect(), to: studying ? bigRect() : smallRect(), p: 0, live: false, trail: [[t.clientY, performance.now()]]};
   }, {passive: true});
@@ -976,6 +974,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=42"></script>
+<script type="module" src="study.js?v=43"></script>
 </body>
 </html>
