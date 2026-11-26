@@ -194,10 +194,10 @@ function publishProgress() {
   const skills = new Map(L().skills.map(s => [s.id, s])), lib = new Map();
   for (const a of atts) {
     const k = mine.get(a.question_id).skill_id, sk = skills.get(k);
-    const t = lib.get(k) || { name: sk?.name || 'Topic', answered: 0, correct: 0, mastered: sk?.mastered || 0 };
+    const t = lib.get(k) || { name: sk?.name || 'Topic', folder: rootOf(k)?.name || 'Other', answered: 0, correct: 0, mastered: sk?.mastered || 0 };
     t.answered++; if (a.correct) t.correct++; lib.set(k, t);
   }
-  window.chizuProgress?.({ growth, library: [...lib.values()].sort((a, b) => b.answered - a.answered) });
+  window.chizuProgress?.({ growth, library: [...lib.values()].sort((a, b) => a.folder.localeCompare(b.folder) || b.answered - a.answered) });
 }
 window.chizuLoadProgress = async () => {
   const s = await session(); if (!s) return;
@@ -208,6 +208,7 @@ window.chizuLoadProgress = async () => {
 function render(full) {
   if (!L()) return;
   publishProgress();
+  renderFolders();
   if (full) {
     el('studyLog').innerHTML = '';
     const msgs = inSession(L().messages).filter(m => !(m.role === 'user' && m.content === '(flashcard)')).slice(-16);
@@ -298,6 +299,39 @@ async function run(body, userText, quiet = false) {
 function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
 // "I'm tired" pauses the automatic questions until you say something again.
 let paused = false;
+// ---------- Subject folders ----------
+// Each top-level skill is a folder (e.g. Calculus); cards sit under topics inside it. The backend files them automatically.
+let subject = localStorage.getItem('chizu_subject') || null, lastNewest = null;
+const rootOf = id => { let s = L().skills.find(x => x.id === id); while (s?.parent_id) s = L().skills.find(x => x.id === s.parent_id); return s; };
+function folders() {
+  const mine = inSession(L().questions), out = new Map();
+  for (const q of mine) { const r = rootOf(q.skill_id); if (r && !out.has(r.id)) out.set(r.id, { id: r.id, name: r.name, cards: 0, due: 0 }); }
+  const byQ = new Map(mine.map(q => [q.id, q]));
+  for (const c of L().cards) { const q = byQ.get(c.question_id), r = q && rootOf(q.skill_id), f = r && out.get(r.id); if (f) { f.cards++; if (Date.parse(c.due_at) <= Date.now()) f.due++; } }
+  return [...out.values()];
+}
+function setSubject(id) { subject = id; id ? localStorage.setItem('chizu_subject', id) : localStorage.removeItem('chizu_subject'); renderFolders(); }
+function renderFolders() {
+  if (!L()) return;
+  const list = folders();
+  // Follow what is actually being studied: a new question in another subject switches the folder.
+  const newest = inSession(L().questions).filter(q => !q.review_card_id).at(-1);
+  if (newest && newest.id !== lastNewest) { if (lastNewest !== null) { const r = rootOf(newest.skill_id); if (r) subject = r.id, localStorage.setItem('chizu_subject', r.id); } lastNewest = newest.id; }
+  if (subject && !list.some(f => f.id === subject)) subject = null;
+  el('subjBar').hidden = !list.length;
+  el('subjName').textContent = list.find(f => f.id === subject)?.name || 'All subjects';
+  el('subjList').innerHTML = list.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) + '<small>' + f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '') + '</small></button>').join('') +
+    '<button data-subj="">+ New subject<small></small></button>';
+  el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
+    el('subjList').hidden = true;
+    if (!b.dataset.subj) { setSubject(null); bubble('her pop', 'What do you want to learn next?'); el('studyText').focus(); return; }
+    setSubject(b.dataset.subj); paused = false;
+    bubble('her pop', 'Switching to ' + rootOf(b.dataset.subj)?.name + '.'); act('h_nod');
+    keepGoing(400);
+  });
+}
+el('subjBtn').onclick = e => { e.stopPropagation(); el('subjList').hidden = !el('subjList').hidden; };
+document.addEventListener('click', e => { if (!e.target.closest('#subjBar')) el('subjList').hidden = true; });
 // The learning flow runs by itself: due reviews first, then new questions (the backend decides which).
 function keepGoing(delay = 2200) {
   setTimeout(async () => {
@@ -309,7 +343,7 @@ function keepGoing(delay = 2200) {
       if (at) await run({ action: 'learn-review', cardId: rv.review_card_id, attemptId: at.id, rating: at.correct ? 3 : 1 }, null, true);
       return keepGoing(600);
     }
-    run({ action: 'learn-next' }, null);
+    run({ action: 'learn-next', ...(subject ? { subject } : {}) }, null);
   }, delay);
 }
 
