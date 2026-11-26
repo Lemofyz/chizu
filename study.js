@@ -338,6 +338,22 @@ async function openStudy() {
   catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
+// Swipes: on the main screen, swipe up to start studying; in the chat, swipe up past the newest message to go back to her.
+let touch = null;
+document.addEventListener('touchstart', e => {
+  const t = e.touches[0], log = el('studyLog');
+  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 6;
+  touch = { x: t.clientX, y: t.clientY, atBottom, inLog: log.contains(e.target), onControl: !!e.target.closest('button, input, a, .sheet:not(#studySheet), .celebrate, .shareview') };
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!touch) return;
+  const t = e.changedTouches[0], dy = t.clientY - touch.y, dx = t.clientX - touch.x, start = touch; touch = null;
+  if (dy > -70 || Math.abs(dx) > 60) return;  // only a clear upward swipe
+  const studying = document.body.classList.contains('studying');
+  if (!studying && !start.onControl && !document.querySelector('.sheet.open')) openStudy();
+  else if (studying && start.inLog && start.atBottom) openSheet('');
+}, { passive: true });
+
 // Tapping her small head (or Escape) brings her back to the middle of the screen.
 el('frame').addEventListener('click', e => { if (document.body.classList.contains('studying')) { e.stopPropagation(); openSheet(''); } }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('studying')) openSheet(''); });

@@ -215,7 +215,7 @@
     <div class="bubble" id="bubble"></div>
   </div>
 </div>
-<div class="state" id="state">Pat her head · poke her tummy · touch her tail · hold to hug · double-tap and she runs over to you</div>
+<div class="state" id="state">Pat her head · poke her tummy · touch her tail · hold to hug · double-tap and she runs over · swipe up to study</div>
 <div class="bar">
   <span class="time" id="time">25:00</span>
   <button data-min="25" class="sel">25</button>
@@ -495,9 +495,11 @@
   function zone(x, y){ if (x > 0.64 && y > 0.38) return 'tail'; if (y < 0.45) return 'pat'; return 'poke'; }
   let holdT, tapT = null;
   const studying = () => document.body.classList.contains('studying');
-  frame.addEventListener('pointerdown', e => { if (studying()) return; holdT = setTimeout(() => { holdT = null; react('hug', e); }, 650); });
+  let downY = 0, downX = 0;
+  frame.addEventListener('pointerdown', e => { if (studying()) return; downY = e.clientY; downX = e.clientX; holdT = setTimeout(() => { holdT = null; react('hug', e); }, 650); });
   frame.addEventListener('pointerup', e => {
-    if (studying() || !holdT) return; clearTimeout(holdT); holdT = null;
+    if (studying() || !holdT) return;
+    if (Math.abs(e.clientY - downY) > 30 || Math.abs(e.clientX - downX) > 30) { clearTimeout(holdT); holdT = null; return; }  // a swipe, not a tap clearTimeout(holdT); holdT = null;
     // Wait a moment before reacting to a single tap, so a double tap can become her walk-around instead.
     const pt = {clientX: e.clientX, clientY: e.clientY};
     if (tapT) { clearTimeout(tapT); tapT = null; return react('hop', pt); }
@@ -799,6 +801,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=14"></script>
+<script type="module" src="study.js?v=15"></script>
 </body>
 </html>
