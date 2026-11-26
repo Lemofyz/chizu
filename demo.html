@@ -418,7 +418,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     focuschat:["Still here. Still proud of you.","Breathe. One thing at a time.","You're in the zone. Don't mind me.","I'm guarding the phone for you."],
     play:["Feather! FEATHER!","Okay, one round. Then back to work.","I wasn't excited. That was a stretch."],
     wear:["Wait, where are we going? …oh. Pajamas.","Pajama time? Carry me gently."],
-    unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."]
+    unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."],
+    giveback:["The pajamas go back now. …I liked them.","Trial's over, the pajamas have to go home. Hmph."]
   };
   // In pajamas she has her own moves and some of her own lines.
   const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_run', wand:'pj_wand'};
@@ -893,7 +894,20 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     preload(o);
     act('idle');
   }
-  outfitBtn.onclick = () => wear(st.outfit === 'pj' ? 'plain' : 'pj');
+  // Non-owners can try the pajamas for 2 minutes; owners keep them (part of what you get for claiming her).
+  let pjTimer = 0;
+  function pjTrial(){
+    clearTimeout(pjTimer);
+    if (window.chizuNo || st.outfit !== 'pj') return;
+    pjTimer = setTimeout(async function back(){
+      if (window.chizuNo || st.outfit !== 'pj') return;
+      if (busy || changing || document.body.classList.contains('studying')) { pjTimer = setTimeout(back, 20000); return; }
+      say('giveback'); await new Promise(r => setTimeout(r, 1800)); await wear('plain');
+      window.chizuOwnShow?.('pj');
+    }, 120000);
+  }
+  window.addEventListener('chizu-owner', () => clearTimeout(pjTimer));
+  outfitBtn.onclick = async () => { await wear(st.outfit === 'pj' ? 'plain' : 'pj'); pjTrial(); };
   $('playBtn').onclick = () => { if (busy || changing) return; say('play'); act('wand'); };
 
   // Late at night she gets sleepy now and then.
@@ -929,7 +943,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     // Her number, front and centre: the screenshot shows off which Chizu is yours (only for people who reserved one).
     if (window.chizuNo) {
       // Their own Chizu number, once they have paid for her (chizu_my_reservation).
-      const label = 'Chizu No.' + String(window.chizuNo).padStart(4, '0');
+      const label = (window.chizuName ? window.chizuName + ' · ' : '') + 'Chizu No.' + String(window.chizuNo).padStart(4, '0');
       g.font = '700 40px Nunito, system-ui, sans-serif';
       const tw = g.measureText(label).width + 64, ty = 880;
       g.fillStyle = '#3e3352'; g.beginPath(); g.roundRect((W - tw) / 2, ty, tw, 72, 36); g.fill();
@@ -968,7 +982,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   function celebrate(min, perfect){
     $('cImg').src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     $('cTitle').textContent = Math.round(min) + ' minutes, done.';
-    $('cSub').textContent = (window.chizuNo ? 'Chizu No.' + String(window.chizuNo).padStart(4, '0') + ' watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
+    $('cSub').textContent = (window.chizuNo ? (window.chizuName || 'Chizu') + ' (No.' + String(window.chizuNo).padStart(4, '0') + ') watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
     $('celebrate').hidden = false;
   }
   $('cShare').onclick = () => { $('celebrate').hidden = true; shareToday(); };
@@ -1044,7 +1058,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // ---------- Start ----------
   settleHunger();
-  wear(st.outfit, true);
+  wear(st.outfit, true); pjTrial();
   if (st.seen !== today()) {
     st.seen = today(); save();
     const h = new Date().getHours();
@@ -1054,11 +1068,11 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=47"></script>
+<script type="module" src="study.js?v=48"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>
-  <p id="ownP">A one-time purchase, no subscription. Full refund anytime before launch.</p>
+  <p id="ownP">Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.</p>
   <a class="own-btn" id="ownBtn" href="index.html#reserve">See your number</a>
 </div>
 <script>
@@ -1071,21 +1085,24 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   sessionStorage.setItem('chizu_src', SRC);
   if (!sessionStorage.getItem('chizu_counted')) { sessionStorage.setItem('chizu_counted', '1'); rpc('chizu_visit', { p_src: SRC }); }
   const el = document.getElementById('own'); let taps = 0, shown = false;
-  async function show(){
-    if (shown || window.chizuNo || sessionStorage.getItem('chizu_own_seen') || document.body.classList.contains('studying')) return;
+  async function show(why){
+    if (window.chizuNo || document.body.classList.contains('studying')) return;
+    if (why !== 'pj' && (shown || sessionStorage.getItem('chizu_own_seen'))) return;
     shown = true; sessionStorage.setItem('chizu_own_seen', '1');
+    document.getElementById('ownT').textContent = why === 'pj' ? 'Keep the pajamas?' : 'Keep her for life?';
     const l = (await rpc('chizu_line') || [])[0];
     if (l) {
       const no = String(l.next_pos).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
-      document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Each next spot costs $1 more. One-time purchase, no subscription, full refund before launch.';
+      document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.';
       document.getElementById('ownBtn').textContent = 'Claim No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
     }
     el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
-    window.posthog?.capture('own_nudge_shown', { next_price: l?.next_price });
+    window.posthog?.capture('own_nudge_shown', { next_price: l?.next_price, why: why || 'play' });
   }
   const hide = () => { el.classList.remove('in'); setTimeout(() => { el.hidden = true; }, 280); };
   document.getElementById('ownX').addEventListener('click', () => { hide(); window.posthog?.capture('own_nudge_closed'); });
   document.getElementById('ownBtn').addEventListener('click', () => window.posthog?.capture('own_nudge_clicked'));
+  window.chizuOwnShow = show;
   window.chizuOwnNudge = () => { if (++taps >= 4) show(); };
   // 'Really played' = 3 taps, or started a focus timer, or opened study. Sent once per session as Meta's StartTrial,
   // so ads can be optimized for people who actually play with her, not people who only click.

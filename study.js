@@ -422,4 +422,4 @@ if (await finishSignIn()) openStudy();
 // Signed in: show her fish from the server.
 else if (await session()) call({ action: 'wallet' }, { wallet: v => window.chizuWallet?.(v.fish) }).catch(() => {});
 // Her number, if this account reserved one: share cards show it.
-if (await session()) sb.rpc('chizu_my_reservation').then(({ data }) => { if (data?.[0]) window.chizuNo = data[0].no; }).catch(() => {});
+if (await session()) sb.rpc('chizu_my_reservation').then(({ data }) => { if (data?.[0]) { window.chizuNo = data[0].no; window.chizuName = data[0].name || ''; window.dispatchEvent(new Event('chizu-owner')); } }).catch(() => {});
