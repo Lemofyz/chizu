@@ -38,7 +38,6 @@
   @keyframes hop{30%{transform:translateY(-7%) scale(.97,1.04)}55%{transform:translateY(0) scale(1.04,.95)}}
   #pic.eat{animation:eat 1.2s ease-in-out}
   @keyframes eat{15%,45%,75%{transform:scale(1.02,.97) translateY(1%)}30%,60%,90%{transform:scale(1,1)}}
-  #pic.away{animation:none;transform:scaleX(-1);transition:transform .4s}
   #pic.sleepy{animation:sleepy 2.4s ease-in-out}
   @keyframes sleepy{40%{transform:translateY(2%) scale(1.02,.96)}}
   .bubble{position:absolute;left:50%;top:-4%;transform:translateX(-50%);background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:.55rem 1rem;font-size:clamp(.85rem,2.2vh,1.02rem);box-shadow:0 10px 30px rgba(62,51,82,.1);white-space:nowrap;max-width:92vw;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:2}
@@ -163,7 +162,7 @@
     unwear:["Okay. Awake mode.","Back to work, I suppose."]
   };
   // In pajamas she has her own moves and some of her own lines.
-  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep'};
+  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_away'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
@@ -212,7 +211,7 @@
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
-  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy'}).forEach(hasClip);
+  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy',e:'away'}).forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   async function act(name){
     const key = st.outfit === 'pj' ? PJ[name] : name;
@@ -316,8 +315,9 @@
     if (running) {
       keepAwake(true);
       if (Date.now() - hiddenAt > 8000) {
-        pickups++; say('away'); busy = true; pic.className = 'away';
-        setTimeout(() => { pic.className = rest; busy = false; say('back'); }, 3500);
+        // She turns her back (a real clip), then slowly turns around and forgives you.
+        pickups++; say('away'); busy = false; act('away');
+        setTimeout(() => say('back'), 3800);
       }
     }
   });
