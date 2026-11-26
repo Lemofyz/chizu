@@ -163,7 +163,7 @@
     unwear:["Okay. Awake mode.","Back to work, I suppose."]
   };
   // In pajamas she has her own moves and some of her own lines.
-  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', eat:'pj_eat'};
+  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
@@ -212,7 +212,7 @@
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
-  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy',e:'eat'}).forEach(hasClip);
+  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy'}).forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   async function act(name){
     const key = st.outfit === 'pj' ? PJ[name] : name;
