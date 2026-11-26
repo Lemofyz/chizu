@@ -385,7 +385,6 @@ async function openStudy() {
     state = await loadState(); render(true);
     // Opening study starts right away for someone who has studied before; a new learner is asked what to learn.
     if (inSession(L().questions).length) keepGoing(800);
-    startTour();
   } catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
@@ -410,20 +409,10 @@ document.addEventListener('touchend', e => {
 el('frame').addEventListener('click', e => {
   if (!document.body.classList.contains('studying')) return;
   e.stopPropagation();
-  endTour();
   el('mHint').hidden = !openQuestion();
   el('chizuMenu').hidden = !el('chizuMenu').hidden;
 }, true);
 const closeMenu = () => { el('chizuMenu').hidden = true; };
-// First visit to study: she says she's more than cute and that tapping her opens more. Shown once.
-function startTour() {
-  if (localStorage.getItem('chizu_tour')) return;
-  setTimeout(() => { if (!document.body.classList.contains('studying') || localStorage.getItem('chizu_tour')) return; el('tourTip').hidden = false; document.body.classList.add('touring'); act('h_ears'); }, 1200);
-}
-function endTour() {
-  if (el('tourTip').hidden) return;
-  el('tourTip').hidden = true; document.body.classList.remove('touring'); localStorage.setItem('chizu_tour', '1');
-}
 // Hint: guess first. The first tap only nudges; tapping again on the same question gets a hint, never the answer.
 let nudged = null;
 el('mHint').onclick = () => {
@@ -486,7 +475,7 @@ window.chizuSync = async p => {
 window.chizuBreak = () => { bubble('her pop', "That's 25 minutes. Stretch, drink some water, then we'll keep going."); act('h_happy'); };
 
 // Small hook for testing the reply rendering in a browser console.
-window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, startTour, show: (s, id) => { state = s; sid = id; render(true); } };
+window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, show: (s, id) => { state = s; sid = id; render(true); } };
 
 // Coming back from Google sign-in opens the study sheet straight away.
 if (await finishSignIn()) openStudy();
