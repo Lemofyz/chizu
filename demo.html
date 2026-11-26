@@ -154,6 +154,12 @@
   body.studying .frame .bubble{display:none}
   body.studying #pic{-webkit-mask-image:none;mask-image:none}
   body.studying.growing #pic{-webkit-mask-image:var(--fade);mask-image:var(--fade)}  /* growing back: no square edge on HDR screens */
+  /* Growing back (--grow 0→1, set by the drag or the glide): her study chrome, the white disc and its shadow, fades away with the growth,
+     and the main screen's focus bar and links fade in alongside her, so nothing is a square at the end or pops in after. */
+  body.studying.growing .frame{background:transparent;box-shadow:0 10px 30px rgba(62,51,82,calc(.18 * (1 - var(--grow, 0))))}
+  body.studying.growing .bar,body.studying.growing .reserve{opacity:var(--grow, 0)}
+  /* Just arrived back: the top buttons settle in instead of appearing at once. */
+  body.arriving .top .pill,body.arriving .state{animation:fadein .3s var(--ease-out) both}
   body.studying .bar,body.studying .state,body.studying .reserve{opacity:0;pointer-events:none}
   /* While studying, only the study-time ring stays on top. */
   body.studying .top .pill:not(#todayBtn){display:none}
@@ -667,13 +673,14 @@
       // Growing back: the face close-up fades and her whole body comes into view, so no giant face.
       frame.style.borderRadius = ((1 - p) * 50) + '%';
       $('studySheet').style.opacity = String(1 - p);
+      document.body.style.setProperty('--grow', String(p));
       vids.forEach(v => { if (v.dataset.kind === 'head') v.style.opacity = String(Math.max(0, 1 - p * 2)); });
       img.style.transition = animate; img.style.transform = 'scale(' + (1.85 - .85 * p) + ')';
     }
   }
   function endDrag(commit){
     const d = drag; drag = null;
-    const reset = () => { frame.style.transform = ''; frame.style.borderRadius = ''; $('studySheet').style.opacity = ''; img.style.transform = ''; vids.forEach(v => { v.style.opacity = ''; }); };
+    const reset = () => { document.body.style.removeProperty('--grow'); frame.style.transform = ''; frame.style.borderRadius = ''; $('studySheet').style.opacity = ''; img.style.transform = ''; vids.forEach(v => { v.style.opacity = ''; }); };
     if (!commit) {
       // Not far enough: spring back to where she was.
       frame.style.transition = 'transform .32s ' + SPRING + ', border-radius .25s ease'; img.style.transition = 'transform .25s ease'; reset();
@@ -741,11 +748,12 @@
       if (gliding) return; gliding = true;
       const d = {toStudy: now, from: rectOf(frame), to: now ? smallRect() : bigRect()};
       if (!now) { document.body.classList.add('growing'); $('studySheet').style.transition = 'opacity .25s ease'; }
-      applyDrag(1, d, 'transform .4s var(--ease-drawer), border-radius .4s var(--ease-drawer)');
+      if (!now) document.querySelectorAll('.bar, .reserve').forEach(x => { x.style.transition = 'opacity .4s ease'; });
+      applyDrag(1, d, 'transform .4s var(--ease-drawer), border-radius .4s var(--ease-drawer), box-shadow .4s ease');
       setTimeout(() => {
         document.body.classList.remove('growing');
         frame.style.transition = 'none'; img.style.transition = 'none';
-        frame.style.transform = ''; frame.style.borderRadius = ''; img.style.transform = '';
+        document.body.style.removeProperty('--grow'); frame.style.transform = ''; frame.style.borderRadius = ''; img.style.transform = '';
         $('studySheet').style.opacity = ''; $('studySheet').style.transition = ''; vids.forEach(v => { v.style.opacity = ''; });
         gliding = false; noGlide = true; try { openSheet(id); } finally { noGlide = false; }
         if (now) $('studyLog').scrollTop = 1e9;
@@ -757,6 +765,8 @@
     document.body.classList.toggle('studying', now);
     if (!now) {
       document.body.classList.remove('thinking');
+      if (was) { document.body.classList.add('arriving'); setTimeout(() => document.body.classList.remove('arriving'), 400);
+        document.querySelectorAll('.bar, .reserve').forEach(x => { x.style.transition = ''; }); }
       // Leaving study: hide the face close-up at once, so it isn't blown up while her frame grows back (the still photo shows meanwhile).
       if (was) vids.forEach(v => { if (v.dataset.kind === 'head') { v.style.transition = 'none'; v.classList.remove('on'); v.pause(); } });
       // The still photo was zoomed on her face in study; snap it back to her whole body instead of shrinking through a giant face.
