@@ -615,7 +615,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     if (kind === 'pat' || kind === 'hug') { st.pats++; save(); }
     say(kind);
     act(kind);
-    window.chizuOwnNudge?.();
+    window.chizuOwnNudge?.(); window.chizuPlayed?.('tap');
   }
 
   // ---------- Focus (time only counts while she is on screen) ----------
@@ -633,7 +633,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   }
   function setState(text){ const s = $('state'); s.textContent = text; s.style.opacity = text ? 1 : 0; }
   let sess = null;  // one study period per focus session, mirrored to the 1O1 account when signed in
-  function start(){ if (!sess) sess = {id: crypto.randomUUID(), started: new Date().toISOString(), sec: 0}; running = true; last = Date.now(); go.textContent = 'Pause'; keepAwake(true); setState('She keeps your screen on. Leave the phone where it is.'); }
+  function start(){ window.chizuPlayed?.('focus'); if (!sess) sess = {id: crypto.randomUUID(), started: new Date().toISOString(), sec: 0}; running = true; last = Date.now(); go.textContent = 'Pause'; keepAwake(true); setState('She keeps your screen on. Leave the phone where it is.'); }
   function stop(text){ running = false; go.textContent = left < total ? 'Resume' : 'Focus'; keepAwake(false); setState(text || ''); }
   go.onclick = () => {
     if (running) { stop('Paused. Your fish is waiting.'); say('pause'); return; }
@@ -1054,7 +1054,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=46"></script>
+<script type="module" src="study.js?v=47"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>
@@ -1087,6 +1087,17 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   document.getElementById('ownX').addEventListener('click', () => { hide(); window.posthog?.capture('own_nudge_closed'); });
   document.getElementById('ownBtn').addEventListener('click', () => window.posthog?.capture('own_nudge_clicked'));
   window.chizuOwnNudge = () => { if (++taps >= 4) show(); };
+  // 'Really played' = 3 taps, or started a focus timer, or opened study. Sent once per session as Meta's StartTrial,
+  // so ads can be optimized for people who actually play with her, not people who only click.
+  let played = 0;
+  window.chizuPlayed = kind => {
+    if (sessionStorage.getItem('chizu_played')) return;
+    if (kind === 'tap' && ++played < 3) return;
+    sessionStorage.setItem('chizu_played', '1');
+    const id = 'chizu_trial_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    window.fbq?.('track', 'StartTrial', { value: 0, currency: 'USD', content_name: 'Chizu demo', predicted_ltv: 0 }, { eventID: id });
+    window.posthog?.capture('demo_played', { how: kind, src: SRC });
+  };
   setTimeout(() => { if (document.visibilityState === 'visible') show(); }, 45000);
 })();
 </script>

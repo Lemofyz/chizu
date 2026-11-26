@@ -323,7 +323,7 @@ function saveCacheSoon() {
   }, 1500);
 }
 async function openStudy() {
-  window.posthog?.capture('study_opened');
+  window.posthog?.capture('study_opened'); window.chizuPlayed?.('study');
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
