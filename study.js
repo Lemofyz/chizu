@@ -232,7 +232,7 @@ function render(full) {
     if (opts.length >= 2) {
       opts.forEach((m, i) => {
         const b = document.createElement('button'); b.innerHTML = '<b>' + m[1] + '</b>' + fmt(m[2]);
-        b.onclick = () => { if (!sending) run({ action: 'learn-answer', questionId: q.id, answer: String(i + 1) }, m[1] + ') ' + m[2]); };
+        b.onclick = () => { if (!sending) answer(q, String(i + 1), m[1] + ') ' + m[2]); };
         box.appendChild(b);
       });
       math(box);
@@ -305,9 +305,17 @@ el('studyQuiz').onclick = () => { const d = !openQuestion() && dueCards()[0]; if
 el('qCheck').onclick = async () => {
   const q = openQuestion(), a = el('qAnswer').value.trim(); if (!q || !a) return;
   el('qAnswer').value = '';
-  const reply = await run({ action: 'learn-answer', questionId: q.id, answer: a }, a);
-  if (reply && /Correct/.test(reply)) fxCenter('✨');
+  answer(q, a, a);
 };
+// After an answer and its explanation, the next question comes by itself (a short pause to read first).
+async function answer(q, value, label) {
+  const reply = await run({ action: 'learn-answer', questionId: q.id, answer: value }, label);
+  if (!reply) return;
+  if (/Correct|对啦/.test(reply)) fxCenter('✨');
+  setTimeout(() => {
+    if (!sending && !openQuestion() && !pendingReview() && document.body.classList.contains('studying')) run({ action: 'learn-next' }, null);
+  }, 2200);
+}
 el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
 el('qLost').onclick = () => run({ action: 'learn-chat', text: "I didn't get it. Can you explain it another way?" }, "I don't get it.");
 document.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => {
