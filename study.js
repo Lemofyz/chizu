@@ -158,7 +158,10 @@ function render(full) {
     // Multiple choice: options are "A) ..." lines in the prompt and the answer is the option number.
     const opts = [...q.prompt.matchAll(/^\s*([A-D])[)）.．、:：]\s*(.+)$/gm)];
     const stem = opts.length >= 2 ? q.prompt.replace(/^\s*[A-D][)）.．、:：].*$/gm, '').trim() : q.prompt;
-    el('qPrompt').innerHTML = fmt(stem); math(el('qPrompt'));
+    // Where this question sits in the round (same rule as the backend): 3 placement, then 4 MCQs + 2 written answers.
+    const nth = inSession(L().questions).filter(x => !x.review_card_id).findIndex(x => x.id === q.id) + 1, c = (nth - 4) % 6;
+    const tag = q.review_card_id ? 'Review' : nth <= 3 ? 'Placement ' + nth + '/3' : c < 4 ? 'Practice ' + (c + 1) + '/4' : 'Final question ' + (c - 3) + '/2 · write your answer';
+    el('qPrompt').innerHTML = '<span class="qtag">' + tag + '</span>' + fmt(stem); math(el('qPrompt'));
     const box = el('qChoices'); box.innerHTML = '';
     if (opts.length >= 2) {
       opts.forEach((m, i) => {
