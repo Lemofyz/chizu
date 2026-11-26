@@ -296,7 +296,7 @@ async function run(body, userText, quiet = false) {
     if (/free questions/.test(e.message)) { say('treat'); }
   } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); }
 }
-function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost', 'studyMic']) el(id).disabled = b; }
+function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost']) el(id).disabled = b; }
 
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t) return;
@@ -342,18 +342,6 @@ el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? ope
 el('frame').addEventListener('click', e => { if (document.body.classList.contains('studying')) { e.stopPropagation(); openSheet(''); } }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('studying')) openSheet(''); });
 
-// Voice input where the browser supports it.
-const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (Rec) {
-  el('studyMic').hidden = false;
-  el('studyMic').onclick = () => {
-    const r = new Rec(); r.lang = 'en-US'; r.interimResults = true;
-    el('studyMic').textContent = '●';
-    r.onresult = e => { el('studyText').value = [...e.results].map(x => x[0].transcript).join(''); };
-    r.onend = () => { el('studyMic').textContent = '🎤'; if (el('studyText').value.trim()) el('studySend').click(); };
-    r.start();
-  };
-}
 
 // Focus sessions also count as study time in the same account (1O1's effective-time record).
 window.chizuSync = async p => {
