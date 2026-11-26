@@ -1,6 +1,11 @@
 // Study with Chizu: the 1O1 learning backend (explain, quiz, grade, review cards) behind Chizu's face.
 // Uses globals from demo.html: $, act, say, openSheet.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+// Her replies stream through react-stream-markdown (Lemofyz's library): new characters fade in, math via KaTeX.
+import React from 'https://esm.sh/react@19.2.1';
+import { createRoot } from 'https://esm.sh/react-dom@19.2.1/client?deps=react@19.2.1';
+import { StreamingMarkdown, createTextStream, katexMath } from 'https://esm.sh/react-stream-markdown@0.4.0?deps=react@19.2.1,react-dom@19.2.1';
+import katex from 'https://esm.sh/katex@0.16.11';
 
 const cfg = window.CHIZU_STUDY;
 const FN = cfg.url + '/functions/v1/coach';
@@ -97,6 +102,37 @@ function bubble(cls, text) {
   const d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = fmt(text);
   el('studyLog').appendChild(d); el('studyLog').scrollTop = 1e9; math(d); return d;
 }
+const mathR = katexMath(katex);
+// A chat bubble rendered by StreamingMarkdown; returns its element and a fresh reply session.
+function mdBubble(cls) {
+  const d = document.createElement('div'); d.className = 'msg ' + cls + ' md';
+  el('studyLog').appendChild(d);
+  const stream = createTextStream();
+  createRoot(d).render(React.createElement(StreamingMarkdown, { stream, math: mathR, animate: true, label: 'Chizu', className: 'chizu-md' }));
+  const session = stream.begin(); session.requestStarted();
+  return { el: d, session };
+}
+function staticMd(cls, text) { const b = mdBubble(cls); b.session.append(text); b.session.complete(); return b.el; }
+// The backend often sends a whole reply at once, and the library skips its fade for big bursts.
+// So feed text in at a reading pace (about 35 characters a second, faster when a long reply backs up).
+function pacer(session, onFrame) {
+  let queue = [], last = 0, carry = 0, raf = 0, ended = false, resolve;
+  const finished = new Promise(r => resolve = r);
+  const tick = t => {
+    raf = 0;
+    const dt = last ? Math.min(100, t - last) : 16; last = t;
+    const cps = 35 + queue.length / 3;
+    carry += cps * dt / 1000;
+    const take = Math.min(queue.length, Math.floor(carry), 40);
+    if (take > 0) { carry -= take; session.append(queue.splice(0, take).join('')); onFrame?.(); }
+    if (queue.length) raf = requestAnimationFrame(tick);
+    else if (ended) { session.complete(); resolve(); }
+    else last = 0;
+  };
+  const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
+  return { push(t) { queue.push(...Array.from(t)); kick(); }, end() { ended = true; kick(); }, finished };
+}
+
 const L = () => state?.learning;
 const inSession = list => list.filter(x => x.session_id === sid);
 function openQuestion() { return inSession(L().questions).find(q => q.status === 'open'); }
@@ -113,7 +149,8 @@ function render(full) {
     el('studyLog').innerHTML = '';
     const msgs = inSession(L().messages).slice(-12);
     if (!msgs.length) bubble('her', "Hi. What are we studying today? Tell me the subject, or tap Quiz me.");
-    for (const m of msgs) bubble(m.role === 'user' ? 'me' : 'her', m.content);
+    for (const m of msgs) m.role === 'user' ? bubble('me', m.content) : staticMd('her', speech(m.content));
+    el('studyLog').scrollTop = 1e9;
   }
   const q = openQuestion(), rv = !q && pendingReview();
   el('studyQ').hidden = !q;
@@ -130,6 +167,14 @@ function render(full) {
 const ACTIONS = [[/tail/i, 'tail'], [/run/i, 'hop'], [/blink/i, 'h_blink'], [/tilt/i, 'h_tilt'], [/nod/i, 'h_nod'], [/ear/i, 'h_ears'],
   [/squint|smil|happy|purr/i, 'h_happy'], [/yawn|sleepy/i, 'h_yawn'], [/wide|surpris|gasp/i, 'h_surprise'], [/frown|pout|huff|grump|glare/i, 'h_frown']];
 function actFor(phrase) { const hit = ACTIONS.find(([r]) => r.test(phrase)); return hit && hit[1]; }
+// *Actions* are shown as her expression, not as text: strip them (single stars only, so **bold** survives).
+const ACTION_RE = /(^|[^*])\*(?!\*)([^*\n]+)\*(?!\*)\s*/g;
+const speech = t => t.replace(ACTION_RE, '$1').replace(/^\s+/, '');
+// While streaming, hold back anything after a lone * that may still become an action.
+function speechSoFar(t) {
+  const s = speech(t), lone = s.search(/(^|[^*])\*(?!\*)[^*\n]*$/);
+  return lone < 0 ? s : s.slice(0, lone + (s[lone] === '*' ? 0 : 1));
+}
 
 // ---------- Actions ----------
 async function run(body, userText) {
@@ -137,26 +182,32 @@ async function run(body, userText) {
   sending = true; setBusy(true);
   if (userText) bubble('me', userText);
   // While the model thinks she does her thinking face; her reply then pops out of her head.
-  let her = null, text = '', acted = false;
-  const frame = el('frame');
-  act('h_think');
+  let her = null, pace = null, text = '', shown = 0, acted = false;
+  document.body.classList.add('thinking'); act('h_think');
   try {
     state = await stream(body, chunk => {
-      if (!her) { her = bubble('her', ''); her.classList.add('pop'); }
-      text += chunk; her.innerHTML = fmt(text); el('studyLog').scrollTop = 1e9;
+      if (!her) {
+        document.body.classList.remove('thinking');
+        her = mdBubble('her pop');
+        pace = pacer(her.session, () => { el('studyLog').scrollTop = 1e9; });
+      }
+      text += chunk;
+      const visible = speechSoFar(text);
+      if (visible.length > shown) { pace.push(visible.slice(shown)); shown = visible.length; }
       if (!acted) {
         const m = text.match(/\*([^*\n]+)\*/);
         if (m) { acted = true; act(actFor(m[1]) || 'idle'); }
         else if (!text.trimStart().startsWith('*') || text.length > 60) { acted = true; act('idle'); }  // wait while an *action* is still arriving
       }
     });
-    if (her) math(her);
+    if (pace) { const rest = speech(text); if (rest.length > shown) pace.push(rest.slice(shown)); pace.end(); await pace.finished; }
     render(false);
     return text;
   } catch (e) {
-    if (!her) her = bubble('her', ''); her.className = 'msg err pop'; her.textContent = e.message; act('idle');
+    if (pace) pace.end();
+    bubble('err pop', e.message); act('idle');
     if (/free questions/.test(e.message)) { say('treat'); }
-  } finally { sending = false; setBusy(false); }
+  } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); }
 }
 function setBusy(b) { for (const id of ['studySend', 'studyQuiz', 'qCheck', 'qLost', 'studyMic']) el(id).disabled = b; }
 
@@ -215,6 +266,9 @@ window.chizuSync = async p => {
   const seconds = Math.min(p.sec, Math.floor((ended - started) / 1000) + 1);
   try { await sb.rpc('save_study_session', { p_id: p.id, p_started: p.started, p_ended: ended.toISOString(), p_seconds: seconds, p_skill: null }); } catch (_) {}
 };
+
+// Small hook for testing the reply rendering in a browser console.
+window.chizuDebug = { mdBubble, pacer, speechSoFar, speech };
 
 // Coming back from Google sign-in opens the study sheet straight away.
 if (await finishSignIn()) openStudy();
