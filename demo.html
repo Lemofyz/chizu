@@ -150,6 +150,10 @@
   #studyMain[hidden]{display:none}
   body.studying .log{flex:1;max-height:none;min-height:0;margin-top:2.4rem;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);mask-image:linear-gradient(to bottom,transparent,#000 2.5rem);padding-top:2rem}
   .avatarSpace{height:124px;flex:none;pointer-events:none}
+  /* With no question card open, the chat runs down behind her: older messages show on either side of her head
+     and the newest one stops just above it. */
+  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .avatarSpace{height:0}
+  body.studying #studyMain:not(:has(.qcard:not([hidden]))) .log{padding-bottom:132px;margin-bottom:.4rem}
   /* Waiting for her reply: a soft lavender ring circles her head. */
   .stage > *{grid-area:1/1}
   .thinkring{width:128px;height:128px;border-radius:50%;opacity:0;pointer-events:none;align-self:end;margin-bottom:-10px;transition:opacity .3s;
