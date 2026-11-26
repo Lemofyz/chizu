@@ -18,9 +18,11 @@
   .stage{position:fixed;inset:0;display:grid;place-items:center}
   .frame{position:relative;width:min(92vw,62vh);aspect-ratio:1;touch-action:manipulation;cursor:pointer}
   .frame img,.frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .frame video{opacity:0;transition:opacity .2s}
+  .frame video{opacity:0;transition:opacity .35s ease}
   .frame video.on{opacity:1}
   /* Reactions without a video clip are simple squishes on the photo/video layer. */
+  /* Fade the outer edge so the clip never shows as a box, e.g. on HDR screens where video white differs from page white. */
+  #pic{--fade:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent),linear-gradient(to bottom,transparent,#000 7%,#000 93%,transparent);-webkit-mask-image:var(--fade);mask-image:var(--fade);-webkit-mask-composite:source-in;mask-composite:intersect}
   #pic{position:absolute;inset:0;transform-origin:50% 88%;animation:breathe 3.6s ease-in-out infinite}
   @keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.008,1.02)}}
   #pic.still{animation:none}
@@ -95,7 +97,7 @@
 <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
 <div class="stage">
   <div class="frame" id="frame" aria-label="Chizu. Tap her head, tummy or tail. Hold to hug.">
-    <div id="pic"><img src="assets/chizu.jpg" alt="Chizu" draggable="false"><video id="vid" muted playsinline preload="auto"></video></div>
+    <div id="pic"><img src="assets/chizu.jpg" alt="Chizu" draggable="false"><video id="v0" muted playsinline preload="auto"></video><video id="v1" muted playsinline preload="auto"></video></div>
     <div class="bubble" id="bubble"></div>
   </div>
 </div>
@@ -153,6 +155,10 @@
     morning:["Morning. I've been up for ages.","Oh. You're awake. Good."],
     evening:["Evening. One session, then rest?","You came back. I wasn't waiting."],
     remind:["It's study time. I'm already at the desk.","Desk time. I saved you a spot."],
+    half:["Halfway. You're doing fine. I'm doing great.","Half done. Keep going, I'm right here."],
+    five:["Five minutes left. Don't you dare touch that phone now.","Almost there. I can smell the fish."],
+    chat:["I counted the stars on my paw. Still one.","Is it snack o'clock? It feels like snack o'clock.","You look busy. I approve.","I'm not bored. Cats don't get bored. We get thoughtful.","If you need me, I'll be right here. Being adorable.","Tell me something good about your day. I'll pretend I'm not listening.","My bow is perfect today, isn't it.","Want to do one short session together? Just ten minutes counts too.","Drink some water. I'm watching.","Did you eat? Real food, not just snacks.","Stretch your neck. You've been hunched like a shrimp.","It's okay to rest. I'll still be here.","I had a dream about a giant fish. It was beautiful.","You're doing better than you think."],
+    focuschat:["Still here. Still proud of you.","Breathe. One thing at a time.","You're in the zone. Don't mind me.","I'm guarding the phone for you."],
     wear:["Pajamas on. Don't laugh.","Is it bedtime? It's bedtime."],
     unwear:["Okay. Awake mode.","Back to work, I suppose."]
   };
@@ -198,23 +204,30 @@
   }
 
   // ---------- Video clips with photo fallback ----------
-  const pic = $('pic'), vid = $('vid'), img = pic.querySelector('img');
+  const pic = $('pic'), img = pic.querySelector('img'), vids = [$('v0'), $('v1')];
+  let cur = 0;
+  // Clips are downloaded once and kept in memory, so switching moves never waits on the network.
   const clip = {};
-  async function hasClip(name){
-    if (name in clip) return clip[name];
-    try { const r = await fetch('assets/clips/' + name + '.mp4', {method:'HEAD'}); clip[name] = r.ok ? 'assets/clips/' + name + '.mp4' : null; }
-    catch(_) { clip[name] = null; }
+  function hasClip(name){
+    if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
+  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy',e:'eat'}).forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   async function act(name){
     const key = st.outfit === 'pj' ? PJ[name] : name;
     const src = key ? await hasClip(key) : null;
     if (src) {
       if (name === 'idle') { rest = 'still'; pic.className = rest; }
-      vid.loop = name === 'idle'; vid.src = src; vid.currentTime = 0;
-      try { await vid.play(); vid.classList.add('on'); } catch(_){}
-      if (name !== 'idle') { busy = true; vid.onended = () => { busy = false; act('idle'); }; }
+      // Start the next clip on the hidden player, then crossfade, so there is never a blank frame.
+      const next = vids[1 - cur], prev = vids[cur];
+      next.onended = null; next.loop = name === 'idle'; next.src = src; next.currentTime = 0;
+      if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
+      try { await next.play(); } catch(_){}
+      next.classList.add('on'); prev.classList.remove('on');
+      setTimeout(() => { if (!prev.classList.contains('on')) prev.pause(); }, 400);
+      cur = 1 - cur;
+      if (name !== 'idle') { busy = true; next.onended = () => { busy = false; act('idle'); }; }
       return;
     }
     if (name === 'idle') return;
@@ -223,7 +236,7 @@
     if (name !== 'away') setTimeout(() => { busy = false; pic.className = rest; }, name === 'eat' ? 1300 : 1000);
   }
   const bubble = $('bubble'); let bt;
-  function say(key){
+  let say = function(key){
     const a = (st.outfit === 'pj' && LINES_PJ[key]) || LINES[key]; if (!a) return;
     bubble.textContent = a[Math.floor(Math.random() * a.length)];
     bubble.classList.add('show'); clearTimeout(bt); bt = setTimeout(() => bubble.classList.remove('show'), 3400);
@@ -255,6 +268,7 @@
   // ---------- Focus (time only counts while she is on screen) ----------
   // Adapted from 1O1's study clock: background time never counts. Unlike 1O1 there is no idle cut-off,
   // because studying here means looking at your book, not touching the screen.
+  let saidHalf = false, saidFive = false;
   let total = 25 * 60, left = total, running = false, pickups = 0, hiddenAt = 0, wake = null, last = Date.now();
   const timeEl = $('time'), go = $('go');
   const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
@@ -269,7 +283,7 @@
   function stop(text){ running = false; go.textContent = left < total ? 'Resume' : 'Focus'; keepAwake(false); setState(text || ''); }
   go.onclick = () => {
     if (running) { stop('Paused. Your fish is waiting.'); say('pause'); return; }
-    if (left === total) { pickups = 0; say('focus'); } else say('resume');
+    if (left === total) { pickups = 0; saidHalf = saidFive = false; say('focus'); } else say('resume');
     start();
   };
   document.querySelector('[data-min="50"]').onclick = () => say('locked');
@@ -284,6 +298,8 @@
       st.streak = st.goalDay === yesterday() ? st.streak + 1 : 1; st.goalDay = today();
       setTimeout(() => say('goal'), 3600);
     }
+    if (!saidHalf && left <= total / 2) { saidHalf = true; say('half'); }
+    if (!saidFive && left <= 300 && left > 0) { saidFive = true; say('five'); }
     if (left <= 0) finish(); else if (st.focusSec % 10 === 0) save();
   }, 1000);
   function finish(){
@@ -351,7 +367,8 @@
     st.outfit = o; save();
     img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Pajamas';
-    vid.classList.remove('on'); vid.onended = null; busy = false; rest = ''; pic.className = '';
+    vids.forEach(v => { v.classList.remove('on'); v.onended = null; }); busy = false; rest = ''; pic.className = '';
+    preload(o);
     if (!quiet) say(o === 'pj' ? 'wear' : 'unwear');
     act('idle');
   }
@@ -359,6 +376,16 @@
 
   // Late at night she gets sleepy now and then.
   setInterval(() => { const h = new Date().getHours(); if (!busy && !running && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
+
+  // She chats on her own: every minute or so when you're idle, every few minutes during focus.
+  let quietUntil = Date.now() + 40000;
+  const _say = say; say = k => { quietUntil = Date.now() + 25000; _say(k); };
+  setInterval(() => {
+    if (document.hidden || busy || Date.now() < quietUntil || document.querySelector('.sheet.open')) return;
+    if (running) { if (Math.random() < 0.12) _say('focuschat'), quietUntil = Date.now() + 240000; return; }
+    _say('chat'); quietUntil = Date.now() + 45000 + Math.random() * 45000;
+    if (Math.random() < 0.35) act('tail');
+  }, 5000);
 
   // ---------- Start ----------
   settleHunger();
