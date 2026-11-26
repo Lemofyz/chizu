@@ -90,6 +90,7 @@
 <div class="top">
   <span class="pill" title="Focus time today"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></span>
   <button class="pill" id="foodBtn" type="button">🐟 <span id="fishN">0</span> <span class="hearts" id="hearts">♡♡♡</span></button>
+  <button class="pill" id="playBtn" type="button" title="Feather wand">🪶 Play</button>
   <button class="pill" id="outfit" type="button">👚</button>
   <button class="pill" id="remBtn" type="button">⏰</button>
 </div>
@@ -104,7 +105,7 @@
 <div class="bar">
   <span class="time" id="time">25:00</span>
   <button data-min="25" class="sel">25</button>
-  <button data-min="50" class="lock" title="Full version">50 🔒</button>
+  <button data-min="50">50</button>
   <button class="go" id="go">Focus</button>
 </div>
 
@@ -114,9 +115,9 @@
   <p>Every focus session with her catches a fish. Finish without touching your phone and you catch two.</p>
   <div class="items">
     <div class="item"><span class="ic">🐟</span><span><b>Fish</b><small>Caught by focusing · you have <span id="fishN2">0</span></small></span><button id="feedFish">Feed</button></div>
-    <div class="item locked" data-treat="sushi"><span class="ic">🍣</span><span><b>Salmon nigiri</b><small>Her favourite. New happy dance.</small></span><button>Full version</button></div>
-    <div class="item locked" data-treat="cake"><span class="ic">🍰</span><span><b>Strawberry cake</b><small>Party hat included.</small></span><button>Full version</button></div>
-    <div class="item locked" data-treat="pudding"><span class="ic">🍮</span><span><b>Pudding</b><small>Wobbles. She loves that.</small></span><button>Full version</button></div>
+    <div class="item locked" data-treat="sushi"><span class="ic">🍣</span><span><b>Salmon nigiri</b><small>Her favourite. New happy dance.</small></span><button>Shop · soon</button></div>
+    <div class="item locked" data-treat="cake"><span class="ic">🍰</span><span><b>Strawberry cake</b><small>Party hat included.</small></span><button>Shop · soon</button></div>
+    <div class="item locked" data-treat="pudding"><span class="ic">🍮</span><span><b>Pudding</b><small>Wobbles. She loves that.</small></span><button>Shop · soon</button></div>
   </div>
 </div>
 
@@ -149,7 +150,7 @@
     nofish:["No fish yet. Focus with me and I'll catch some.","Fish come from focus. I don't make the rules. I do, actually."],
     full:["I'm full. Save it for later."],
     peckish:["Is that a snack in your bag?","I'm not hungry. I'm just looking at the fish button."],
-    treat:["That one's a treat from the full version."],
+    treat:["That one's from the shop. Coming soon. I've already picked my favourite."],
     goal:["That's today's goal. I'm proud. Quietly.","Goal done. You can rest now, if you want."],
     morning:["Morning. I've been up for ages.","Oh. You're awake. Good."],
     evening:["Evening. One session, then rest?","You came back. I wasn't waiting."],
@@ -158,11 +159,13 @@
     five:["Five minutes left. Don't you dare touch that phone now.","Almost there. I can smell the fish."],
     chat:["I counted the stars on my paw. Still one.","Is it snack o'clock? It feels like snack o'clock.","You look busy. I approve.","I'm not bored. Cats don't get bored. We get thoughtful.","If you need me, I'll be right here. Being adorable.","Tell me something good about your day. I'll pretend I'm not listening.","My bow is perfect today, isn't it.","Want to do one short session together? Just ten minutes counts too.","Drink some water. I'm watching.","Did you eat? Real food, not just snacks.","Stretch your neck. You've been hunched like a shrimp.","It's okay to rest. I'll still be here.","I had a dream about a giant fish. It was beautiful.","You're doing better than you think."],
     focuschat:["Still here. Still proud of you.","Breathe. One thing at a time.","You're in the zone. Don't mind me.","I'm guarding the phone for you."],
-    wear:["Pajamas on. Don't laugh.","Is it bedtime? It's bedtime."],
-    unwear:["Okay. Awake mode.","Back to work, I suppose."]
+    play:["Feather! FEATHER!","Okay, one round. Then back to work.","I wasn't excited. That was a stretch."],
+    wear:["Wait, where are we going? …oh. Pajamas.","Pajama time? Carry me gently."],
+    unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."]
   };
   // In pajamas she has her own moves and some of her own lines.
-  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', hop:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_away'};
+  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_away', hop:'pj_spin', wand:'pj_wand'};
+  const PLAIN = {hop:'spin'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
@@ -211,21 +214,32 @@
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
-  const preload = o => Object.values(o === 'pj' ? PJ : {a:'idle',b:'pat',c:'tail',d:'sleepy',e:'away'}).forEach(hasClip);
+  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','away','spin','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
+  async function show(src, loop){
+    const next = vids[1 - cur], prev = vids[cur];
+    next.onended = null; next.loop = loop; next.src = src; next.currentTime = 0;
+    if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
+    try { await next.play(); } catch(_){}
+    // Fade the new clip in first and only then drop the old one, so nothing behind ever shows through.
+    next.classList.add('on'); prev.onended = null;
+    setTimeout(() => { prev.classList.remove('on'); setTimeout(() => { if (!prev.classList.contains('on')) prev.pause(); }, 400); }, 350);
+    cur = 1 - cur;
+    return next;
+  }
+  async function playOnce(key){
+    const src = await hasClip(key); if (!src) return false;
+    const v = await show(src, false);
+    await new Promise(r => { v.onended = r; setTimeout(r, 8000); });
+    return true;
+  }
   async function act(name){
-    const key = st.outfit === 'pj' ? PJ[name] : name;
+    const key = st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name);
     const src = key ? await hasClip(key) : null;
     if (src) {
       if (name === 'idle') { rest = 'still'; pic.className = rest; }
       // Start the next clip on the hidden player, then crossfade, so there is never a blank frame.
-      const next = vids[1 - cur], prev = vids[cur];
-      next.onended = null; next.loop = name === 'idle'; next.src = src; next.currentTime = 0;
-      if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
-      try { await next.play(); } catch(_){}
-      next.classList.add('on'); prev.classList.remove('on');
-      setTimeout(() => { if (!prev.classList.contains('on')) prev.pause(); }, 400);
-      cur = 1 - cur;
+      const next = await show(src, name === 'idle');
       if (name !== 'idle') { busy = true; next.onended = () => { busy = false; act('idle'); }; }
       return;
     }
@@ -285,7 +299,11 @@
     if (left === total) { pickups = 0; saidHalf = saidFive = false; say('focus'); } else say('resume');
     start();
   };
-  document.querySelector('[data-min="50"]').onclick = () => say('locked');
+  document.querySelectorAll('[data-min]').forEach(b => b.onclick = () => {
+    if (running || left !== total) return;
+    document.querySelectorAll('[data-min]').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+    total = left = Number(b.dataset.min) * 60; timeEl.textContent = fmt(left);
+  });
   setInterval(() => {
     const now = Date.now(), dt = Math.round((now - last) / 1000); last = now;
     if (!running || document.hidden || dt <= 0) return;
@@ -363,16 +381,29 @@
 
   // ---------- Outfit ----------
   const outfitBtn = $('outfit');
-  function wear(o, quiet){
+  let changing = false;
+  async function wear(o, quiet){
+    if (changing) return;
+    if (!quiet) {
+      // Someone scoops her up and carries her off; she comes back already changed.
+      changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');
+      await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry');
+      st.outfit = o; save(); img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
+      outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
+      preload(o);
+      await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in');
+      changing = false; busy = false; rest = ''; act('idle');
+      return;
+    }
     st.outfit = o; save();
     img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
-    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Pajamas';
+    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
     vids.forEach(v => { v.classList.remove('on'); v.onended = null; }); busy = false; rest = ''; pic.className = '';
     preload(o);
-    if (!quiet) say(o === 'pj' ? 'wear' : 'unwear');
     act('idle');
   }
   outfitBtn.onclick = () => wear(st.outfit === 'pj' ? 'plain' : 'pj');
+  $('playBtn').onclick = () => { if (busy || changing) return; say('play'); act('wand'); };
 
   // Late at night she gets sleepy now and then.
   setInterval(() => { const h = new Date().getHours(); if (!busy && !running && (h >= 23 || h < 5) && Math.random() < 0.3) { say('sleepy'); act('sleepy'); } }, 90000);
@@ -384,8 +415,14 @@
     if (document.hidden || busy || Date.now() < quietUntil || document.querySelector('.sheet.open')) return;
     if (running) { if (Math.random() < 0.12) _say('focuschat'), quietUntil = Date.now() + 240000; return; }
     _say('chat'); quietUntil = Date.now() + 45000 + Math.random() * 45000;
-    if (Math.random() < 0.35) act('tail');
+    if (Math.random() < 0.35) act(Math.random() < 0.7 ? 'tail' : 'hop');
   }, 5000);
+
+  // iOS pauses page videos in the background and does not resume them; restart whatever she was doing.
+  function resumeVideo(){ const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(resumeVideo, 60); });
+  window.addEventListener('pageshow', () => setTimeout(resumeVideo, 60));
+  window.addEventListener('focus', resumeVideo);
 
   // ---------- Start ----------
   settleHunger();
