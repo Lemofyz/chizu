@@ -115,7 +115,7 @@ function mdBubble(cls) {
 function staticMd(cls, text) { const b = mdBubble(cls); b.session.append(text); b.session.complete(); return b.el; }
 // The backend often sends a whole reply at once, and the library skips its fade for big bursts.
 // So feed text in at a reading pace (about 35 characters a second, faster when a long reply backs up).
-function pacer(session, onFrame) {
+function pacer(session, onFrame, onIdle) {
   let queue = [], last = 0, carry = 0, raf = 0, ended = false, resolve;
   const finished = new Promise(r => resolve = r);
   const tick = t => {
@@ -127,7 +127,7 @@ function pacer(session, onFrame) {
     if (take > 0) { carry -= take; session.append(queue.splice(0, take).join('')); onFrame?.(); }
     if (queue.length) raf = requestAnimationFrame(tick);
     else if (ended) { session.complete(); resolve(); }
-    else last = 0;
+    else { last = 0; onIdle?.(); }
   };
   const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
   return { push(t) { queue.push(...Array.from(t)); kick(); }, end() { ended = true; kick(); }, finished };
@@ -269,14 +269,18 @@ async function run(body, userText, quiet = false) {
   sending = true; setBusy(true);
   if (userText) bubble('me', userText);
   // While the model thinks she does her thinking face; her reply then pops out of her head.
-  let her = null, pace = null, text = '', shown = 0, acted = false;
+  let her = null, pace = null, text = '', shown = 0, acted = false, waited = false;
   if (!quiet) { document.body.classList.add('thinking'); window.thinkStart(); }
   try {
     state = await stream(body, chunk => {
       if (!her) {
         document.body.classList.remove('thinking');
         her = mdBubble('her pop');
-        pace = pacer(her.session, () => { el('studyLog').scrollTop = 1e9; });
+        pace = pacer(her.session, () => { el('studyLog').scrollTop = 1e9; }, () => {
+          // Words done but the question card not here yet: she thinks instead of the screen looking frozen.
+          const len = text.length;
+          setTimeout(() => { if (sending && text.length === len && !document.body.classList.contains('thinking')) { document.body.classList.add('thinking'); window.thinkStart(); waited = true; } }, 700);
+        });
       }
       text += chunk;
       const visible = speechSoFar(text);
@@ -294,7 +298,7 @@ async function run(body, userText, quiet = false) {
     if (pace) pace.end();
     bubble('err pop', e.message); act('idle');
     if (/free questions/.test(e.message)) { say('treat'); }
-  } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); }
+  } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); if (waited) act('idle'); }
 }
 function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
 // "I'm tired" pauses the automatic questions until you say something again.
@@ -333,7 +337,7 @@ function renderFolders() {
 el('subjBtn').onclick = e => { e.stopPropagation(); el('subjList').hidden = !el('subjList').hidden; };
 document.addEventListener('click', e => { if (!e.target.closest('#subjBar')) el('subjList').hidden = true; });
 // The learning flow runs by itself: due reviews first, then new questions (the backend decides which).
-function keepGoing(delay = 2200) {
+function keepGoing(delay = 1200) {
   setTimeout(async () => {
     if (sending || paused || !document.body.classList.contains('studying') || openQuestion()) return;
     // Reviews rate themselves from right or wrong: right = Good, wrong = Again, so a missed point comes back until it sticks.
