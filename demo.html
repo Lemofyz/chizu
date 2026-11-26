@@ -171,6 +171,13 @@
   .chizumenu button:nth-last-of-type(4){animation-delay:210ms}
   .chizumenu button:nth-last-of-type(5){animation-delay:280ms}
   @keyframes bubblein{from{opacity:0;transform:translate(-16px,18px) scale(.3)}}
+  /* First time in study: she points out that tapping her opens more. */
+  .tourtip{position:fixed;z-index:7;left:min(calc(50% + 46px),calc(100vw - 236px));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 196px);max-width:220px;background:var(--deep);color:#fff;font-size:.88rem;line-height:1.4;
+    padding:.65rem .9rem;border-radius:18px 18px 18px 6px;box-shadow:0 12px 30px rgba(62,51,82,.25);transform-origin:0% 100%;animation:bubblein .45s cubic-bezier(.2,1.5,.4,1) both;pointer-events:none}
+  .tourtip b{color:#d9cff5}
+  body:not(.studying) .tourtip{display:none}
+  body.studying.touring .frame{animation:tourpulse 1.6s ease-out infinite}
+  @keyframes tourpulse{0%{box-shadow:0 0 0 0 rgba(140,116,212,.55),0 10px 30px rgba(62,51,82,.18)}100%{box-shadow:0 0 0 18px rgba(140,116,212,0),0 10px 30px rgba(62,51,82,.18)}}
   @media (prefers-reduced-motion:reduce){.chizumenu button{animation:none}}
   .chizumenu button:disabled{opacity:.5}
   body.studying.dropping .log{outline:2px dashed var(--lav);outline-offset:-6px;border-radius:16px}
@@ -300,6 +307,7 @@
       <div class="row rate"><button data-rate="1">Forgot</button><button data-rate="2">Hard</button><button data-rate="3">Good</button><button data-rate="4">Easy</button></div>
     </div>
     <div class="avatarSpace" aria-hidden="true"></div>
+    <div class="tourtip" id="tourTip" hidden>I'm not just here to look cute.<br><b>Tap me</b> for hints, uploads and more.</div>
     <div class="chizumenu" id="chizuMenu" hidden role="menu">
       <button id="mHint" role="menuitem">Hint</button>
       <button id="mUpload" role="menuitem">Upload a file</button>
@@ -850,6 +858,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=23"></script>
+<script type="module" src="study.js?v=24"></script>
 </body>
 </html>
