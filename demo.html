@@ -297,7 +297,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   <button class="pill" id="studyBtn" type="button" title="Study">📖<span class="lbl"> Study</span></button>
   <button class="pill" id="foodBtn" type="button">🐟 <span id="fishN">0</span> <span class="hearts" id="hearts">♡♡♡</span></button>
   <button class="pill" id="playBtn" type="button" title="Feather wand">🪶<span class="lbl"> Play</span></button>
-  <button class="pill" id="outfit" type="button">👚</button>
+  <button class="pill" id="outfit" type="button" aria-label="Pajamas">👚</button>
   <button class="pill" id="remBtn" type="button" title="Study reminder">⏰</button>
   <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
 </div>
@@ -419,7 +419,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     play:["Feather! FEATHER!","Okay, one round. Then back to work.","I wasn't excited. That was a stretch."],
     wear:["Wait, where are we going? …oh. Pajamas.","Pajama time? Carry me gently."],
     unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."],
-    giveback:["The pajamas go back now. …I liked them.","Trial's over, the pajamas have to go home. Hmph."]
+    wantpj:["Pajamas are for cats with a home. …Are you offering?","I'd wear them for you. If I were yours."]
   };
   // In pajamas she has her own moves and some of her own lines.
   const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_run', wand:'pj_wand'};
@@ -881,7 +881,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
       changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');
       await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry', 300);
       st.outfit = o; save(); img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
-      outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = '👚<span class="lbl"> ' + (o === 'pj' ? 'Pajamas on' : 'Try pajamas') + '</span>';
+      outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = pjLabel();
       preload(o);
       await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in', 250, 0.7);
       changing = false; busy = false; rest = ''; act('idle', 900);
@@ -889,25 +889,22 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     }
     st.outfit = o; save();
     img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
-    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = '👚<span class="lbl"> ' + (o === 'pj' ? 'Pajamas on' : 'Try pajamas') + '</span>';
+    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = pjLabel();
     vids.forEach(v => { v.classList.remove('on'); v.onended = null; }); busy = false; rest = ''; pic.className = '';
     preload(o);
     act('idle');
   }
-  // Non-owners can try the pajamas for 2 minutes; owners keep them (part of what you get for claiming her).
-  let pjTimer = 0;
-  function pjTrial(){
-    clearTimeout(pjTimer);
-    if (window.chizuNo || st.outfit !== 'pj') return;
-    pjTimer = setTimeout(async function back(){
-      if (window.chizuNo || st.outfit !== 'pj') return;
-      if (busy || changing || document.body.classList.contains('studying')) { pjTimer = setTimeout(back, 20000); return; }
-      say('giveback'); await new Promise(r => setTimeout(r, 1800)); await wear('plain');
-      window.chizuOwnShow?.('pj');
-    }, 120000);
+  // Outfits are for owners: in the demo the pajama button offers her instead of changing her.
+  const pjLabel = () => '👚<span class="lbl"> ' + (st.outfit === 'pj' ? 'Pajamas on' : window.chizuNo ? 'Pajamas' : 'Pajamas 🔒') + '</span>';
+  function ownerOutfits(){
+    if (!window.chizuNo && st.outfit === 'pj') wear('plain', true);
+    outfitBtn.innerHTML = pjLabel();
   }
-  window.addEventListener('chizu-owner', () => clearTimeout(pjTimer));
-  outfitBtn.onclick = async () => { await wear(st.outfit === 'pj' ? 'plain' : 'pj'); pjTrial(); };
+  window.addEventListener('chizu-owner', () => { outfitBtn.innerHTML = pjLabel(); if (localStorage.getItem('chizu_owner_pj') === '1' && st.outfit !== 'pj') wear('pj', true); });
+  outfitBtn.onclick = async () => {
+    if (!window.chizuNo) { say('wantpj'); window.chizuOwnShow?.('pj'); window.posthog?.capture('outfit_locked_tapped'); return; }
+    const o = st.outfit === 'pj' ? 'plain' : 'pj'; await wear(o); localStorage.setItem('chizu_owner_pj', o === 'pj' ? '1' : '0'); outfitBtn.innerHTML = pjLabel();
+  };
   $('playBtn').onclick = () => { if (busy || changing) return; say('play'); act('wand'); };
 
   // Late at night she gets sleepy now and then.
@@ -1058,7 +1055,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // ---------- Start ----------
   settleHunger();
-  wear(st.outfit, true); pjTrial();
+  wear(st.outfit, true); ownerOutfits();
   if (st.seen !== today()) {
     st.seen = today(); save();
     const h = new Date().getHours();
@@ -1089,7 +1086,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     if (window.chizuNo || document.body.classList.contains('studying')) return;
     if (why !== 'pj' && (shown || sessionStorage.getItem('chizu_own_seen'))) return;
     shown = true; sessionStorage.setItem('chizu_own_seen', '1');
-    document.getElementById('ownT').textContent = why === 'pj' ? 'Keep the pajamas?' : 'Keep her for life?';
+    document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : 'Keep her for life?';
     const l = (await rpc('chizu_line') || [])[0];
     if (l) {
       const no = String(l.next_pos).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
