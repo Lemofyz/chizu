@@ -237,11 +237,12 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   const SRC = (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('chizu_src') || 'direct').replace(/[^\w-]/g, '').slice(0, 40);
   sessionStorage.setItem('chizu_src', SRC);
   if (!sessionStorage.getItem('chizu_counted')) { sessionStorage.setItem('chizu_counted', '1'); sb.rpc('chizu_visit', { p_src: SRC }).then(() => {}, () => {}); }
+  const cookie = n => (document.cookie.match('(?:^|; )' + n + '=([^;]*)') || [])[1] || null;
   const say = (t, err) => { $('resMsg').hidden = !t; $('resMsg').textContent = t || ''; $('resMsg').style.color = err ? '#c0392b' : ''; };
   async function call(body){
     const { data: { session } } = await sb.auth.getSession();
     const r = await fetch(PAY, { method: 'POST', headers: { Authorization: 'Bearer ' + session.access_token, apikey: CHIZU_STUDY.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...body, page: location.pathname, src: SRC }) });
+      body: JSON.stringify({ ...body, page: location.pathname, src: SRC, fbp: cookie('_fbp'), fbc: cookie('_fbc') }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'Something went wrong. Try again.');
     return j;
@@ -318,7 +319,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
       history.replaceState(null, '', location.pathname + '#reserve'); say('Confirming your payment…');
       for (let i = 0; i < 15; i++) { const j = await call({ action: 'seat' }); if (j.seat?.status === 'paid') { say(''); showDone(j.seat); loadLine();
         // One purchase event per paid spot (free spot #1 is not a purchase).
-        if (j.seat.price > 0 && !localStorage.getItem('chizu_px_' + j.seat.pos)) { localStorage.setItem('chizu_px_' + j.seat.pos, '1'); window.posthog?.capture('purchased', { price: j.seat.price, pos: j.seat.pos }); window.fbq?.('track', 'Purchase', { value: j.seat.price, currency: 'USD', content_name: 'Chizu No.' + pad(j.seat.no) }); }
+        if (j.seat.price > 0 && !localStorage.getItem('chizu_px_' + j.seat.pos)) { localStorage.setItem('chizu_px_' + j.seat.pos, '1'); window.posthog?.capture('purchased', { price: j.seat.price, pos: j.seat.pos }); window.fbq?.('track', 'Purchase', { value: j.seat.price, currency: 'USD', content_name: 'Chizu No.' + pad(j.seat.no) }, { eventID: 'chizu_seat_' + j.seat.id }); }
         return; } await new Promise(r => setTimeout(r, 1500)); }
       return say('Your payment is still being confirmed. Refresh in a minute.');
     }
