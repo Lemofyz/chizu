@@ -108,7 +108,8 @@
   .btnlink{border-radius:999px;padding:.6rem 1rem;font-weight:700;background:var(--deep);color:#fff;text-decoration:none}
   /* Study mode: Chizu shrinks into a living round avatar above the input, chat opens above her. */
   .frame{transition:width .55s cubic-bezier(.2,.8,.2,1),border-radius .55s,box-shadow .55s}
-  .frame img,.frame video{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+  .frame img{transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+  .frame video{transition:opacity .35s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
   .stage{transition:padding .55s cubic-bezier(.2,.8,.2,1)}
   body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 104px)}
   body.studying .frame{width:108px;border-radius:50%;overflow:hidden;box-shadow:0 10px 30px rgba(62,51,82,.18);background:#fefefe;z-index:6}
@@ -315,15 +316,31 @@
   const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','run','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   // The new clip always fades in on top while the old one keeps moving underneath, so moves blend instead of cutting.
-  async function show(src, loop, ms = 350, head = false){
+  let curKey = '';
+  async function show(src, loop, ms = 350, head = false, key = ''){
     const next = vids[1 - cur], prev = vids[cur];
     next.dataset.kind = head ? 'head' : 'body';
+    const from = curKey; curKey = key;
     next.onended = null; next.ontimeupdate = null; next.loop = loop; next.src = src; next.currentTime = 0;
     if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
     try { await next.play(); } catch(_){}
     prev.onended = null; prev.ontimeupdate = null;
     next.style.zIndex = 2; prev.style.zIndex = 1;
-    next.style.transitionDuration = ms + 'ms';
+    // Returning to her loop: glide the last frame onto her resting pose while the loop eases in from where she was,
+    // so she seems to settle back into place instead of jumping (offsets measured per clip in clip-align.js).
+    const al = loop && window.CHIZU_ALIGN && window.CHIZU_ALIGN[from];
+    if (al && al.to === key) {
+      const t = `opacity ${ms}ms ease, translate ${ms}ms ease, scale ${ms}ms ease, transform .55s ease`;
+      next.style.transition = 'none'; next.style.translate = `${-al.dx / al.s}% ${-al.dy / al.s}%`; next.style.scale = String(1 / al.s);
+      void next.offsetWidth;
+      next.style.transition = t; prev.style.transition = t;
+      next.classList.add('on'); next.style.translate = '0% 0%'; next.style.scale = '1';
+      prev.classList.remove('on'); prev.style.translate = `${al.dx}% ${al.dy}%`; prev.style.scale = String(al.s);
+      setTimeout(() => { if (vids[cur] !== prev) { prev.pause(); prev.style.transition = 'none'; prev.style.translate = ''; prev.style.scale = ''; } }, ms + 60);
+      cur = 1 - cur;
+      return next;
+    }
+    next.style.transition = `opacity ${ms}ms ease, transform .55s ease`; next.style.translate = ''; next.style.scale = '';
     next.classList.add('on');
     setTimeout(() => { if (vids[cur] !== prev) { prev.style.transitionDuration = '0ms'; prev.classList.remove('on'); prev.pause(); } }, ms + 60);
     cur = 1 - cur;
@@ -332,7 +349,7 @@
   // Plays a clip once; with `early`, hands over that many seconds before the end so the next move can blend in.
   async function playOnce(key, ms = 350, early = 0){
     const src = await hasClip(key); if (!src) return false;
-    const v = await show(src, false, ms);
+    const v = await show(src, false, ms, false, key);
     await new Promise(r => {
       let done = false; const fin = () => { if (!done) { done = true; v.ontimeupdate = null; r(); } };
       v.onended = fin; setTimeout(fin, 9000);
@@ -355,11 +372,11 @@
     if (src) {
       if (LOOPS.includes(name)) { rest = 'still'; pic.className = rest; busy = false; }
       // Start the next clip on the hidden player, then crossfade, so there is never a blank frame.
-      const next = await show(src, LOOPS.includes(name), fadeMs, head);
+      const next = await show(src, LOOPS.includes(name), fadeMs, head, key);
       if (!LOOPS.includes(name)) {
         // Start settling back into her idle loop just before the move ends.
         busy = true; let done = false;
-        const settle = () => { if (done) return; done = true; next.ontimeupdate = null; next.onended = null; busy = false; document.body.classList.remove('popout'); act('idle', 800); };
+        const settle = () => { if (done) return; done = true; next.ontimeupdate = null; next.onended = null; busy = false; document.body.classList.remove('popout'); act('idle', 900); };
         next.ontimeupdate = () => { if (next.duration && next.currentTime >= next.duration - 0.35) settle(); };
         next.onended = settle;
       }
@@ -534,7 +551,7 @@
       outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
       preload(o);
       await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in', 250, 0.7);
-      changing = false; busy = false; rest = ''; act('idle', 800);
+      changing = false; busy = false; rest = ''; act('idle', 900);
       return;
     }
     st.outfit = o; save();
@@ -635,6 +652,7 @@
   render();
 </script>
 <script src="study-config.js"></script>
+<script src="clip-align.js"></script>
 <script type="module" src="study.js"></script>
 </body>
 </html>
