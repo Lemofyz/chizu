@@ -84,12 +84,16 @@
   .row button{border:0;border-radius:999px;padding:.6rem 1rem;font-weight:700;cursor:pointer;background:var(--deep);color:#fff}
   .row button.ghost{background:var(--tint);color:var(--deep)}
   .sheet.tall{max-height:78vh;display:flex;flex-direction:column}
-  .log{flex:1;min-height:120px;max-height:38vh;overflow:auto;display:grid;gap:.5rem;margin:.7rem 0 .2rem;padding-right:.2rem;user-select:text;-webkit-user-select:text}
+  .log{flex:1;min-height:120px;max-height:38vh;overflow:auto;display:flex;flex-direction:column;gap:.5rem;margin:.7rem 0 .2rem;padding-right:.2rem;user-select:text;-webkit-user-select:text}
   .msg{font-size:.9rem;line-height:1.5;padding:.55rem .8rem;border-radius:14px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}
-  .msg.me{justify-self:end;background:var(--deep);color:#fff}
+  .log > :first-child{margin-top:auto}  /* messages sit at the bottom, next to her */
+  .msg.me{align-self:flex-end;background:var(--deep);color:#fff}
   .act{color:#9a94a3;font-style:italic}
-  .msg.her{justify-self:start;background:var(--tint);color:var(--ink)}
-  .msg.err{justify-self:start;background:#fff4f0;color:#8a3b22}
+  /* Her replies pop up out of her head. */
+  .msg.pop{transform-origin:50% 100%;animation:popup .45s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes popup{0%{opacity:0;transform:translateY(80px) scale(.2)}100%{opacity:1;transform:none}}
+  .msg.her{align-self:flex-start;background:var(--tint);color:var(--ink)}
+  .msg.err{align-self:flex-start;background:#fff4f0;color:#8a3b22}
   .qcard{border:1px solid var(--line);border-radius:14px;padding:.7rem .8rem;margin-top:.5rem;user-select:text;-webkit-user-select:text}
   .qprompt{font-size:.92rem;white-space:pre-wrap}
   .rate button{flex:1;padding:.55rem .3rem}
@@ -109,6 +113,9 @@
   body.studying .stage{place-items:end center;padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + 104px)}
   body.studying .frame{width:108px;border-radius:50%;overflow:hidden;box-shadow:0 10px 30px rgba(62,51,82,.18);background:#fefefe;z-index:6}
   body.studying .frame img,body.studying .frame video{transform:scale(1.85);transform-origin:50% 34%}
+  body.studying .frame video[data-kind=head]{transform:scale(1.08)}
+  body.studying.popout .frame{width:min(300px,70vw);border-radius:28px}
+  body.studying.popout .frame img,body.studying.popout .frame video{transform:none}
   body.studying .frame .bubble{display:none}
   body.studying #pic{-webkit-mask-image:none;mask-image:none}
   body.studying .bar,body.studying .state,body.studying .reserve{opacity:0;pointer-events:none}
@@ -308,8 +315,9 @@
   const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','run','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   // The new clip always fades in on top while the old one keeps moving underneath, so moves blend instead of cutting.
-  async function show(src, loop, ms = 350){
+  async function show(src, loop, ms = 350, head = false){
     const next = vids[1 - cur], prev = vids[cur];
+    next.dataset.kind = head ? 'head' : 'body';
     next.onended = null; next.ontimeupdate = null; next.loop = loop; next.src = src; next.currentTime = 0;
     if (next.readyState < 2) await new Promise(r => { next.addEventListener('loadeddata', r, {once: true}); setTimeout(r, 1500); });
     try { await next.play(); } catch(_){}
@@ -332,23 +340,33 @@
     });
     return true;
   }
+  // In study mode she lives in a small round frame: face close-ups play there, and full-body moves make her pop out bigger.
+  const inStudy = () => document.body.classList.contains('studying');
+  const HEADS = ['h_blink', 'h_think', 'h_tilt', 'h_nod', 'h_ears', 'h_happy', 'h_yawn', 'h_surprise', 'h_frown'];
+  const LOOPS = ['idle', 'h_blink', 'h_think'];  // loops never block taps or other moves
   async function act(name, fadeMs = 350){
-    const key = st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name);
+    const pre = st.outfit === 'pj' ? 'pj_' : '';
+    if (inStudy() && name === 'idle') name = 'h_blink';
+    const head = name.startsWith('h_');
+    const key = head ? pre + name : (st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name));
+    const pop = inStudy() && !head;
+    if (pop) document.body.classList.add('popout');
     const src = key ? await hasClip(key) : null;
     if (src) {
-      if (name === 'idle') { rest = 'still'; pic.className = rest; }
+      if (LOOPS.includes(name)) { rest = 'still'; pic.className = rest; busy = false; }
       // Start the next clip on the hidden player, then crossfade, so there is never a blank frame.
-      const next = await show(src, name === 'idle', fadeMs);
-      if (name !== 'idle') {
+      const next = await show(src, LOOPS.includes(name), fadeMs, head);
+      if (!LOOPS.includes(name)) {
         // Start settling back into her idle loop just before the move ends.
         busy = true; let done = false;
-        const settle = () => { if (done) return; done = true; next.ontimeupdate = null; next.onended = null; busy = false; act('idle', 800); };
-        next.ontimeupdate = () => { if (next.duration && next.currentTime >= next.duration - 0.8) settle(); };
+        const settle = () => { if (done) return; done = true; next.ontimeupdate = null; next.onended = null; busy = false; document.body.classList.remove('popout'); act('idle', 800); };
+        next.ontimeupdate = () => { if (next.duration && next.currentTime >= next.duration - 0.35) settle(); };
         next.onended = settle;
       }
       return;
     }
-    if (name === 'idle') return;
+    document.body.classList.remove('popout');
+    if (name === 'idle' || head) return;
     pic.className = rest; void pic.offsetWidth; pic.className = name;
     busy = true;
     if (name !== 'away') setTimeout(() => { busy = false; pic.className = rest; }, name === 'eat' ? 1300 : 1000);
@@ -383,12 +401,13 @@
   frame.addEventListener('pointerleave', () => { if (holdT) { clearTimeout(holdT); holdT = null; } });
   function react(kind, e){
     if (document.body.classList.contains('studying')) return;  // in study mode a tap on her head just brings her back
+    if (busy || changing) return;  // a move always plays to the end; taps during it are ignored
     if (!running) $('state').style.opacity = 0;
     const r = frame.getBoundingClientRect();
     fx(e.clientX - r.left, e.clientY - r.top, kind === 'poke' ? '💢' : kind === 'hug' ? '💜' : kind === 'tail' ? '〰️' : '✨');
     if (kind === 'pat' || kind === 'hug') { st.pats++; save(); }
     say(kind);
-    if (!busy || kind === 'hug' || kind === 'hop') act(kind);
+    act(kind);
   }
 
   // ---------- Focus (time only counts while she is on screen) ----------
@@ -459,10 +478,16 @@
 
   // ---------- Feeding ----------
   const sheets = [...document.querySelectorAll('.sheet')];
-  const openSheet = id => { sheets.forEach(s => s.classList.toggle('open', s.id === id)); document.body.classList.toggle('studying', id === 'studySheet'); };
+  const openSheet = id => {
+    sheets.forEach(s => s.classList.toggle('open', s.id === id));
+    const was = inStudy(), now = id === 'studySheet';
+    document.body.classList.toggle('studying', now);
+    if (was !== now) { if (now) HEADS.forEach(h => hasClip((st.outfit === 'pj' ? 'pj_' : '') + h)); busy = false; act('idle', 500); }
+  };
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => openSheet(''));
   $('foodBtn').onclick = () => { settleHunger(); render(); openSheet($('foodSheet').classList.contains('open') ? '' : 'foodSheet'); };
   $('feedFish').onclick = () => {
+    if (busy || changing) return;
     settleHunger();
     if (st.full >= 3) return say('full');
     if (st.fish <= 0) return say('nofish');
@@ -500,7 +525,7 @@
   const outfitBtn = $('outfit');
   let changing = false;
   async function wear(o, quiet){
-    if (changing) return;
+    if (changing || (!quiet && busy)) return;
     if (!quiet) {
       // Someone scoops her up and carries her off; she comes back already changed.
       changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');

@@ -125,20 +125,36 @@ function render(full) {
   window.chizuDue = due;
 }
 
+// ---------- Her described actions become animations ----------
+// Order matters: "happy tail swish" should swish, not squint.
+const ACTIONS = [[/tail/i, 'tail'], [/run/i, 'hop'], [/blink/i, 'h_blink'], [/tilt/i, 'h_tilt'], [/nod/i, 'h_nod'], [/ear/i, 'h_ears'],
+  [/squint|smil|happy|purr/i, 'h_happy'], [/yawn|sleepy/i, 'h_yawn'], [/wide|surpris|gasp/i, 'h_surprise'], [/frown|pout|huff|grump|glare/i, 'h_frown']];
+function actFor(phrase) { const hit = ACTIONS.find(([r]) => r.test(phrase)); return hit && hit[1]; }
+
 // ---------- Actions ----------
 async function run(body, userText) {
   if (sending) return;
   sending = true; setBusy(true);
   if (userText) bubble('me', userText);
-  const her = bubble('her', '…'); let text = '';
-  const frame = el('frame'); frame.classList.add('talking');
+  // While the model thinks she does her thinking face; her reply then pops out of her head.
+  let her = null, text = '', acted = false;
+  const frame = el('frame');
+  act('h_think');
   try {
-    state = await stream(body, chunk => { text += chunk; her.innerHTML = fmt(text); el('studyLog').scrollTop = 1e9; });
-    if (!text) her.remove(); else math(her);
+    state = await stream(body, chunk => {
+      if (!her) { her = bubble('her', ''); her.classList.add('pop'); frame.classList.add('talking'); }
+      text += chunk; her.innerHTML = fmt(text); el('studyLog').scrollTop = 1e9;
+      if (!acted) {
+        const m = text.match(/\*([^*\n]+)\*/);
+        if (m) { acted = true; act(actFor(m[1]) || 'idle'); }
+        else if (!text.trimStart().startsWith('*') || text.length > 60) { acted = true; act('idle'); }  // wait while an *action* is still arriving
+      }
+    });
+    if (her) math(her);
     render(false);
     return text;
   } catch (e) {
-    her.className = 'msg err'; her.textContent = e.message;
+    if (!her) her = bubble('her', ''); her.className = 'msg err pop'; her.textContent = e.message; act('idle');
     if (/free questions/.test(e.message)) { say('treat'); }
   } finally { sending = false; setBusy(false); frame.classList.remove('talking'); }
 }
@@ -154,8 +170,7 @@ el('qCheck').onclick = async () => {
   const q = openQuestion(), a = el('qAnswer').value.trim(); if (!q || !a) return;
   el('qAnswer').value = '';
   const reply = await run({ action: 'learn-answer', questionId: q.id, answer: a }, a);
-  if (!reply) return;
-  if (/^(AI-graded · )?Correct/.test(reply)) { act('hop'); fxCenter('✨'); } else act('tail');
+  if (reply && /Correct/.test(reply)) fxCenter('✨');
 };
 el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
 el('qLost').onclick = () => run({ action: 'learn-chat', text: "I didn't get it. Can you explain it another way?" }, "I don't get it.");
