@@ -862,6 +862,14 @@
     const pic = new Image(); pic.src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     await pic.decode().catch(() => {});
     g.drawImage(pic, (W - 620) / 2, 300, 620, 620);
+    // Her number, front and centre: the screenshot shows off which Chizu is yours (only for people who reserved one).
+    if (window.chizuNo) {
+      const label = 'Chizu No.' + String(window.chizuNo).padStart(4, '0');
+      g.font = '700 40px Nunito, system-ui, sans-serif';
+      const tw = g.measureText(label).width + 64, ty = 880;
+      g.fillStyle = '#3e3352'; g.beginPath(); g.roundRect((W - tw) / 2, ty, tw, 72, 36); g.fill();
+      g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, W / 2, ty + 37); g.textBaseline = 'alphabetic';
+    }
     const serif = 'Fraunces, "Songti SC", "PingFang SC", serif', sans = 'Nunito, "PingFang SC", system-ui, sans-serif';
     g.textAlign = 'center'; g.fillStyle = '#6c6676'; g.font = '600 40px ' + sans;
     g.fillText(zh ? '今天被芝士监督学习了' : 'Chizu watched me study for', W / 2, 140);
@@ -869,7 +877,7 @@
     g.fillText(hm(st.focusSec), W / 2, 270);
     const days = lastDays(7), max = Math.max(1500, ...days.map(x => x.sec)), week = days.reduce((a, x) => a + x.sec, 0);
     g.fillStyle = '#6c6676'; g.font = '600 34px ' + sans;
-    g.fillText((zh ? '本周 ' : 'This week ') + hm(week) + (st.streak ? (zh ? ' · 连续 ' + st.streak + ' 天' : ' · ' + st.streak + '-day streak') : ''), W / 2, 990);
+    g.fillText((zh ? '本周 ' : 'This week ') + hm(week) + (st.streak ? (zh ? ' · 连续 ' + st.streak + ' 天' : ' · ' + st.streak + '-day streak') : ''), W / 2, window.chizuNo ? 1018 : 990);
     const bw = 64, gap = 36, x0 = (W - (7 * bw + 6 * gap)) / 2, base = 1190;
     days.forEach((x, i) => {
       const h = Math.max(6, Math.round(x.sec / max * 130)), bx = x0 + i * (bw + gap);
@@ -895,7 +903,7 @@
   function celebrate(min, perfect){
     $('cImg').src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     $('cTitle').textContent = Math.round(min) + ' minutes, done.';
-    $('cSub').textContent = 'Chizu watched you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
+    $('cSub').textContent = (window.chizuNo ? 'Chizu No.' + String(window.chizuNo).padStart(4, '0') + ' watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
     $('celebrate').hidden = false;
   }
   $('cShare').onclick = () => { $('celebrate').hidden = true; shareToday(); };
@@ -990,6 +998,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=44"></script>
+<script type="module" src="study.js?v=45"></script>
 </body>
 </html>
