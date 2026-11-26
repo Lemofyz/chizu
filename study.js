@@ -154,7 +154,22 @@ function render(full) {
   }
   const q = openQuestion(), rv = !q && pendingReview();
   el('studyQ').hidden = !q;
-  if (q) { el('qPrompt').innerHTML = fmt(q.prompt); math(el('qPrompt')); }
+  if (q) {
+    // Multiple choice: options are "A) ..." lines in the prompt and the answer is the option number.
+    const opts = [...q.prompt.matchAll(/^\s*([A-D])[)）.．、:：]\s*(.+)$/gm)];
+    const stem = opts.length >= 2 ? q.prompt.replace(/^\s*[A-D][)）.．、:：].*$/gm, '').trim() : q.prompt;
+    el('qPrompt').innerHTML = fmt(stem); math(el('qPrompt'));
+    const box = el('qChoices'); box.innerHTML = '';
+    if (opts.length >= 2) {
+      opts.forEach((m, i) => {
+        const b = document.createElement('button'); b.innerHTML = '<b>' + m[1] + '</b>' + fmt(m[2]);
+        b.onclick = () => { if (!sending) run({ action: 'learn-answer', questionId: q.id, answer: String(i + 1) }, m[1] + ') ' + m[2]); };
+        box.appendChild(b);
+      });
+      math(box);
+    }
+    el('qTyped').hidden = opts.length >= 2;
+  }
   el('studyRate').hidden = !rv;
   const mine = new Set(inSession(L().questions).map(q => q.id));
   const due = L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).length;
@@ -268,7 +283,7 @@ window.chizuSync = async p => {
 };
 
 // Small hook for testing the reply rendering in a browser console.
-window.chizuDebug = { mdBubble, pacer, speechSoFar, speech };
+window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, show: (s, id) => { state = s; sid = id; render(true); } };
 
 // Coming back from Google sign-in opens the study sheet straight away.
 if (await finishSignIn()) openStudy();
