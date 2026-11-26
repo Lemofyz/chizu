@@ -56,7 +56,8 @@
   .ring .bg{stroke:var(--line)}
   .ring .fg{stroke:var(--lav);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .6s}
   .hearts{letter-spacing:-.05em;color:var(--lav)}
-  .reserve{position:fixed;z-index:3;left:0;right:0;top:calc(max(12px,env(safe-area-inset-top)) + 38px);text-align:center;font-size:.75rem}
+  .reserve{flex-basis:100%;text-align:center;font-size:.75rem;margin-top:.1rem}
+  @media (max-width:560px){.pill .lbl{display:none}.top{gap:.3rem;padding:0 8px}.pill{padding:.32rem .55rem}.ring{width:16px;height:16px}}
   .reserve a{color:var(--soft)}
 
   .bar{position:fixed;z-index:3;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);border-radius:999px;padding:.4rem .45rem .4rem 1rem;box-shadow:0 8px 28px rgba(62,51,82,.08);max-width:calc(100vw - 24px)}
@@ -192,13 +193,13 @@
 <body>
 <div class="top">
   <button class="pill" id="todayBtn" type="button" title="Study log"><svg class="ring" viewBox="0 0 20 20"><circle class="bg" cx="10" cy="10" r="7.5"/><circle class="fg" id="ring" cx="10" cy="10" r="7.5" stroke-dasharray="47.1" stroke-dashoffset="47.1"/></svg><span id="today">0 / 25 min</span><span id="streak"></span></button>
-  <button class="pill" id="studyBtn" type="button">📖 Study</button>
+  <button class="pill" id="studyBtn" type="button" title="Study">📖<span class="lbl"> Study</span></button>
   <button class="pill" id="foodBtn" type="button">🐟 <span id="fishN">0</span> <span class="hearts" id="hearts">♡♡♡</span></button>
-  <button class="pill" id="playBtn" type="button" title="Feather wand">🪶 Play</button>
+  <button class="pill" id="playBtn" type="button" title="Feather wand">🪶<span class="lbl"> Play</span></button>
   <button class="pill" id="outfit" type="button">👚</button>
-  <button class="pill" id="remBtn" type="button">⏰</button>
+  <button class="pill" id="remBtn" type="button" title="Study reminder">⏰</button>
+  <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
 </div>
-<div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
 <div class="stage">
   <div class="thinkring" aria-hidden="true"></div>
   <div class="frame" id="frame" aria-label="Chizu. Tap her head, tummy or tail. Hold to hug.">
@@ -365,7 +366,7 @@
   const $ = id => document.getElementById(id);
   function render(){
     const min = Math.floor(st.focusSec / 60), goal = st.goalMin;
-    $('today').textContent = min + ' / ' + goal + ' min';
+    $('today').innerHTML = min + '/' + goal + '<span class="lbl"> min</span>';
     $('ring').style.strokeDashoffset = 47.1 * (1 - Math.min(1, st.focusSec / (goal * 60)));
     $('streak').textContent = st.streak > 0 ? ' · 🔥 ' + st.streak : '';
     $('fishN').textContent = st.fish; $('fishN2').textContent = st.fish;
@@ -632,7 +633,7 @@
       changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');
       await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry', 300);
       st.outfit = o; save(); img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
-      outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
+      outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = '👚<span class="lbl"> ' + (o === 'pj' ? 'Pajamas on' : 'Try pajamas') + '</span>';
       preload(o);
       await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in', 250, 0.7);
       changing = false; busy = false; rest = ''; act('idle', 900);
@@ -640,7 +641,7 @@
     }
     st.outfit = o; save();
     img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
-    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.textContent = o === 'pj' ? '👚 Pajamas on' : '👚 Try pajamas';
+    outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = '👚<span class="lbl"> ' + (o === 'pj' ? 'Pajamas on' : 'Try pajamas') + '</span>';
     vids.forEach(v => { v.classList.remove('on'); v.onended = null; }); busy = false; rest = ''; pic.className = '';
     preload(o);
     act('idle');
