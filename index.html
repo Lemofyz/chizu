@@ -207,6 +207,7 @@
   const priceOf = no => no <= 101 ? no - 1 : 100 + 50 * Math.floor((no - 101) / 1000);
   const priceLabel = no => priceOf(no) === 0 ? 'Free' : '$' + priceOf(no);
   let line = {taken: 0, next_pos: 1, next_price: 0, taken_numbers: []}, pick = null, resume = null;  // resume: a held spot not paid yet
+  let shownPrice = null, live = 0;   // the price the buyer saw when they pressed pay, and the picker's refresh timer
 
   function render(){
     const next = line.next_pos;
@@ -256,6 +257,10 @@
     [...$('nums').children].forEach(x => x.classList.toggle('on', Number(x.textContent) === pick));
     $('picker').hidden = false;
     $('resLabel').innerHTML = line.next_price === 0 ? 'Claim it free' : 'Pay $' + line.next_price + ' with Stripe';
+    // Others may be buying right now: keep the spot and price on screen current while the picker is open.
+    clearInterval(live);
+    live = setInterval(async () => { if ($('picker').hidden || resume) return clearInterval(live); const was = line.next_pos; await loadLine();
+      if (line.next_pos !== was) { const keep = pick; showPicker(); if (keep && keep <= line.next_pos && !line.taken_numbers.includes(keep)) { pick = keep; [...$('nums').children].forEach(x => x.classList.toggle('on', Number(x.textContent) === keep)); } } }, 10000);
   }
   $('res').addEventListener('submit', async e => {
     e.preventDefault();
@@ -273,7 +278,14 @@
     if (!pick) return say('Pick a number first.', true);
     $('resBtn').disabled = true; say('');
     try {
+      shownPrice = line.next_price;
       const j = await call({ action: 'claim', no: pick, name: $('name').value.trim() });
+      // Someone got in first and the price moved: say so before sending them to pay (their spot is held for 30 minutes).
+      if (j.url && j.seat && j.seat.price !== shownPrice) {
+        clearInterval(live); resume = j.seat.no;
+        say('Someone got in just before you. Your spot is #' + j.seat.pos + ' · $' + j.seat.price + ', held for 30 minutes.', false);
+        $('resLabel').textContent = 'Continue: pay $' + j.seat.price + ' for Chizu No.' + pad(j.seat.no); return;
+      }
       if (j.url) { location.href = j.url; return; }
       if (j.seat?.status === 'paid') { showDone(j.seat); loadLine(); }
     } catch (err) { say(err.message, true); await loadLine(); showPicker(); }
