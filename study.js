@@ -1,5 +1,6 @@
-// Study with Chizu: the 1O1 learning backend (explain, quiz, grade, review cards) behind Chizu's face.
-// Uses globals from demo.html: $, act, say, openSheet.
+// Study with Chizu. The flow is decided by the chizu backend (supabase/functions/chizu in the 1O1 repo);
+// this file only shows what it sends: her words, question cards, verdicts, subjects.
+// Uses globals from demo.html: act, say, openSheet, fxCenter, thinkStart.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 // Her replies stream through react-stream-markdown (Lemofyz's library): new characters fade in, math via KaTeX.
 import React from 'https://esm.sh/react@19.2.1';
@@ -8,28 +9,16 @@ import { StreamingMarkdown, createTextStream, katexMath } from 'https://esm.sh/r
 import katex from 'https://esm.sh/katex@0.16.11';
 
 const cfg = window.CHIZU_STUDY;
-const FN = cfg.url + '/functions/v1/coach';
-const FREE_DAILY = 5;
+const FN = cfg.url + '/functions/v1/chizu';
 const sb = createClient(cfg.url, cfg.key, {
   auth: { flowType: 'pkce', detectSessionInUrl: false, persistSession: true, autoRefreshToken: true, storageKey: 'chizu-study-auth' },
 });
-
 const el = id => document.getElementById(id);
-let state = null, sending = false, sid = null;
-// Same formula as the backend's chizuSessionId: Chizu keeps one conversation of her own per account.
-async function chizuSessionId(user) {
-  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('chizu-session:' + user)));
-  h[6] = (h[6] & 0x0f) | 0x40; h[8] = (h[8] & 0x3f) | 0x80;
-  const x = [...h.slice(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
-}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ---------- Sign-in ----------
 async function session() { return (await sb.auth.getSession()).data.session; }
-el('studyLogin').onclick = () => sb.auth.signInWithOAuth({
-  provider: 'google',
-  options: { redirectTo: location.origin + location.pathname },
-});
+el('studyLogin').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
 async function finishSignIn() {
   const code = new URLSearchParams(location.search).get('code');
   if (!code) return false;
@@ -38,28 +27,18 @@ async function finishSignIn() {
   return !error;
 }
 
-// ---------- Talking to the backend ----------
-const uuid = () => crypto.randomUUID();
-async function headers(stream) {
+// ---------- Talking to the backend: one POST, a stream of events back ----------
+async function call(body, on) {
   const s = await session();
-  return { Authorization: 'Bearer ' + s.access_token, apikey: cfg.key, 'Content-Type': 'application/json', ...(stream ? { Accept: 'text/event-stream' } : {}) };
-}
-async function loadState() {
-  const r = await fetch(FN, { method: 'POST', headers: await headers(false),
-    body: JSON.stringify({ action: 'state', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || 'Could not reach her study notes. Try again.');
-  return j.state;
-}
-// Learning actions stream her words as they are written, then send the saved state.
-async function stream(body, onText) {
-  const r = await fetch(FN, { method: 'POST', headers: await headers(true), body: JSON.stringify({ ...body, requestId: uuid(), persona: 'chizu' }) });
+  if (!s) throw new Error('Please sign in first.');
+  const r = await fetch(FN, { method: 'POST', body: JSON.stringify(body),
+    headers: { Authorization: 'Bearer ' + s.access_token, apikey: cfg.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' } });
   if (!(r.headers.get('content-type') || '').includes('text/event-stream')) {
     const j = await r.json().catch(() => ({}));
-    throw new Error(j.error || 'Something went wrong. Try again.');
+    throw new Error(j.error || 'Something went wrong, meow. Try again~');
   }
   const reader = r.body.getReader(), dec = new TextDecoder();
-  let buf = '', next = null, done = false;
+  let buf = '', done = false;
   for (;;) {
     const { value, done: end } = await reader.read();
     if (end) break;
@@ -67,27 +46,23 @@ async function stream(body, onText) {
     let i;
     while ((i = buf.indexOf('\n\n')) >= 0) {
       const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
-      let ev = 'message', data = '';
+      let ev = '', data = '';
       for (const line of chunk.split('\n')) {
         if (line.startsWith('event:')) ev = line.slice(6).trim();
         else if (line.startsWith('data:')) data += line.slice(5).trim();
       }
-      if (!data) continue;
+      if (!ev || !data) continue;
       const v = JSON.parse(data);
-      if (ev === 'delta') onText(v.text);
-      else if (ev === 'state') next = v.state;
-      else if (ev === 'error') throw new Error(v.error);
-      else if (ev === 'done') done = true;
+      if (ev === 'error') throw new Error(v.message);
+      if (ev === 'done') done = true; else on[ev]?.(v);
     }
   }
-  if (!next || !done) throw new Error('She lost her train of thought. Try again.');
-  return next;
+  if (!done) throw new Error('She lost her train of thought, meow. Try again~');
 }
 
 // ---------- Rendering ----------
-const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-// **bold**, and *her actions* in soft grey italics (later these can trigger her animations).
-const fmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*([^*\n]+)\*/g, '<span class="act">$1</span>');
+const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const fmt = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 let katexReady = null;
 function math(node) {
   katexReady ??= new Promise(res => {
@@ -98,371 +73,270 @@ function math(node) {
   });
   katexReady.then(() => window.renderMathInElement?.(node, { delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }));
 }
+const log = () => el('studyLog');
+const atBottom = () => log().scrollTop + log().clientHeight >= log().scrollHeight - 40;
 function bubble(cls, text) {
   const d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = fmt(text);
-  el('studyLog').appendChild(d); el('studyLog').scrollTop = 1e9; math(d); return d;
+  log().appendChild(d); log().scrollTop = 1e9; math(d); return d;
 }
 const mathR = katexMath(katex);
-// A chat bubble rendered by StreamingMarkdown; returns its element and a fresh reply session.
 function mdBubble(cls) {
   const d = document.createElement('div'); d.className = 'msg ' + cls + ' md';
-  el('studyLog').appendChild(d);
+  log().appendChild(d);
   const stream = createTextStream();
   createRoot(d).render(React.createElement(StreamingMarkdown, { stream, math: mathR, animate: true, label: 'Chizu', className: 'chizu-md' }));
-  const session = stream.begin(); session.requestStarted();
-  return { el: d, session };
+  const s = stream.begin(); s.requestStarted();
+  return { el: d, session: s };
 }
 function staticMd(cls, text) { const b = mdBubble(cls); b.session.append(text); b.session.complete(); return b.el; }
-// The backend often sends a whole reply at once, and the library skips its fade for big bursts.
-// So feed text in at a reading pace (about 35 characters a second, faster when a long reply backs up).
-function pacer(session, onFrame, onIdle) {
+// Text is fed in at a reading pace (about 35 characters a second, faster when a long reply backs up),
+// because the markdown library skips its fade for big bursts.
+function pacer(session) {
   let queue = [], last = 0, carry = 0, raf = 0, ended = false, resolve;
   const finished = new Promise(r => resolve = r);
   const tick = t => {
     raf = 0;
     const dt = last ? Math.min(100, t - last) : 16; last = t;
-    const cps = 35 + queue.length / 3;
-    carry += cps * dt / 1000;
+    carry += (35 + queue.length / 3) * dt / 1000;
     const take = Math.min(queue.length, Math.floor(carry), 40);
-    if (take > 0) { carry -= take; session.append(queue.splice(0, take).join('')); onFrame?.(); }
+    if (take > 0) { carry -= take; const stick = atBottom(); session.append(queue.splice(0, take).join('')); if (stick) log().scrollTop = 1e9; }
     if (queue.length) raf = requestAnimationFrame(tick);
     else if (ended) { session.complete(); resolve(); }
-    else { last = 0; onIdle?.(); }
+    else last = 0;
   };
   const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
   return { push(t) { queue.push(...Array.from(t)); kick(); }, end() { ended = true; kick(); }, finished };
 }
 
-const L = () => state?.learning;
-const inSession = list => list.filter(x => x.session_id === sid);
-// The question card only shows what belongs to the chosen subject; another folder's unfinished question waits there.
-const inSubject = q => !subject || !q.skill_id || !rootOf(q.skill_id) || rootOf(q.skill_id).id === subject;
-function openQuestion() { return inSession(L().questions).find(q => q.status === 'open' && inSubject(q)); }
-function pendingReview() {
-  return inSession(L().questions).find(q => q.review_card_id && inSubject(q) && L().attempts.some(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)));
-}
-function dueCards() {
-  const mine = new Set(inSession(L().questions).map(q => q.id));
-  return L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).sort((a, b) => a.due_at.localeCompare(b.due_at));
-}
-// Anki-style review: front = the original question, back = its explanation; she rates how well she remembered.
-let flashing = null, weak = [];
-function showFlash(card) {
-  flashing = card;
-  const q = L().questions.find(x => x.id === card.question_id);
-  const at = L().attempts.filter(a => a.question_id === card.question_id).at(-1);
-  const back = speech(at?.explanation || '').replace(/^(AI-graded · )?(Correct!?|Not quite\.?)[^\n]*\n*/i, '').trim();
-  el('fTag').textContent = 'Card · ' + (card.name || 'Review') + ' · ' + dueCards().length + ' left';
-  el('fFront').innerHTML = fmt(q?.prompt || card.name); math(el('fFront'));
-  el('fBack').innerHTML = fmt(back || 'No notes saved for this one.'); math(el('fBack'));
-  el('fBack').hidden = true; el('fRate').hidden = true; el('fShowRow').hidden = false;
-  el('studyFlash').hidden = false; el('studyQ').hidden = true; el('studyRate').hidden = true;
-}
-el('fShow').onclick = () => { el('fBack').hidden = false; el('fRate').hidden = false; el('fShowRow').hidden = true; act('h_tilt'); };
-document.querySelectorAll('[data-frate]').forEach(b => b.onclick = async () => {
-  if (!flashing || sending) return;
-  const card = flashing, rating = Number(b.dataset.frate);
-  el('studyFlash').hidden = true; flashing = null;
-  act(rating >= 3 ? 'h_happy' : 'h_frown');
-  await run({ action: 'learn-flash', cardId: card.id, rating }, null, true);
-  if (rating <= 2) weak.push(card.name);
-  const next = dueCards()[0];
-  if (next) return showFlash(next);
-  if (weak.length) {  // what she didn't remember gets practised right after the cards
-    const topics = [...new Set(weak)].join('; '); weak = [];
-    return run({ action: 'learn-chat', text: 'Give me one practice question on what I just forgot: ' + topics }, 'Practice what I forgot');
-  }
-  bubble('her pop', 'All caught up, meow~');
-});
-
-function freeLeft() {
-  const day = new Date().toLocaleDateString('en-CA');
-  return Math.max(0, FREE_DAILY - L().questions.filter(q => !q.review_card_id && new Date(q.created_at).toLocaleDateString('en-CA') === day).length);
-}
-// Growth curve and library for the progress sheet, from Chizu's own conversation only.
-function publishProgress() {
-  if (!L()) return;
-  const mine = new Map(inSession(L().questions).filter(q => !q.review_card_id).map(q => [q.id, q]));
-  const atts = L().attempts.filter(a => mine.has(a.question_id)).sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const day = t => new Date(t).toLocaleDateString('en-CA');
-  const growth = []; let right = 0, answered = 0, cur = null;
-  for (const a of atts) {
-    const d = day(a.created_at);
-    if (cur && cur !== d) growth.push({ d: cur, correct: right, answered });
-    cur = d; answered++; if (a.correct) right++;
-  }
-  if (cur) growth.push({ d: cur, correct: right, answered });
-  if (growth.length && growth.at(-1).d !== day(Date.now())) growth.push({ d: day(Date.now()), correct: right, answered });
-  const skills = new Map(L().skills.map(s => [s.id, s])), lib = new Map();
-  for (const a of atts) {
-    const k = mine.get(a.question_id).skill_id, sk = skills.get(k);
-    const t = lib.get(k) || { name: sk?.name || 'Topic', folder: rootOf(k)?.name || 'Other', answered: 0, correct: 0, mastered: sk?.mastered || 0 };
-    t.answered++; if (a.correct) t.correct++; lib.set(k, t);
-  }
-  window.chizuProgress?.({ growth, library: [...lib.values()].sort((a, b) => a.folder.localeCompare(b.folder) || b.answered - a.answered) });
-}
-window.chizuLoadProgress = async () => {
-  const s = await session(); if (!s) return;
-  sid ??= await chizuSessionId(s.user.id);
-  try { state = await loadState(); publishProgress(); } catch (_) {}
-};
-
-function render(full) {
-  if (!L()) return;
-  const log = el('studyLog'), pinned = log.scrollTop + log.clientHeight >= log.scrollHeight - 40;
-  publishProgress();
-  renderFolders();
-  if (full) {
-    el('studyLog').innerHTML = '';
-    const msgs = inSession(L().messages).filter(m => !(m.role === 'user' && m.content === '(flashcard)')).slice(-16);
-    if (!msgs.length) bubble('her', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions.");
-    // Instructions the page sends on your behalf show as the button you pressed.
-    const said = t => /^Give me one new question on what I have been studying/.test(t) ? 'Quiz me.' : /^Give me one practice question on what I just forgot/.test(t) ? 'Practice what I forgot' : t;
-    // Flashcard self-ratings are stored as an answer and its notes; they are not part of the conversation.
-    const flashQ = new Set(L().messages.filter(m => m.role === 'user' && m.content === '(flashcard)').map(m => m.question_id));
-    for (const m of msgs) { if (m.question_id && flashQ.has(m.question_id)) continue; m.role === 'user' ? bubble('me', said(m.content)) : staticMd('her', speech(m.content)); }
-    el('studyLog').scrollTop = 1e9;
-  }
-  const q = holdQ || openQuestion(), rv = !q && pendingReview();
-  const card = el('studyQ');
-  if (q && q.id !== card.dataset.q) { card.dataset.q = q.id; card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter'); }
-  if (!q) card.dataset.q = '';
-  if (flashing && (q || rv)) { flashing = null; el('studyFlash').hidden = true; }
-  el('studyQ').hidden = !q;
-  if (q) {
-    // Multiple choice: options are "A) ..." lines in the prompt and the answer is the option number.
-    const opts = [...q.prompt.matchAll(/^\s*([A-D])[)）.．、:：]\s*(.+)$/gm)];
-    const stem = opts.length >= 2 ? q.prompt.replace(/^\s*[A-D][)）.．、:：].*$/gm, '').trim() : q.prompt;
-    // Where this question sits in the round (same rule as the backend): 3 placement, then 4 MCQs + 2 written answers.
-    const nth = inSession(L().questions).filter(x => !x.review_card_id).findIndex(x => x.id === q.id) + 1, c = (nth - 4) % 6;
-    const tag = q.review_card_id ? 'Review' : nth <= 3 ? 'Placement ' + nth + '/3' : c < 4 ? 'Practice ' + (c + 1) + '/4' : 'Final question ' + (c - 3) + '/2 · write your answer';
-    el('qPrompt').innerHTML = '<span class="qtag">' + tag + '</span>' + fmt(stem); math(el('qPrompt'));
-    const box = el('qChoices'); box.innerHTML = '';
-    if (opts.length >= 2) {
-      opts.forEach((m, i) => {
-        const b = document.createElement('button'); b.innerHTML = '<b>' + m[1] + '</b>' + fmt(m[2]);
-        if (pick?.id === q.id && pick.i === i) b.classList.add(pick.ok == null ? 'picked' : pick.ok ? 'right' : 'wrong');
-        b.onclick = () => { if (sending || pick?.id === q.id) return; pick = {id: q.id, i, ok: null}; holdQ = q; b.classList.add('picked'); answer(q, String(i + 1), m[1] + ') ' + m[2]); };
-        box.appendChild(b);
-      });
-      math(box);
-    }
-    el('qTyped').hidden = opts.length >= 2;
-  }
-  el('studyRate').hidden = !rv;
-  const mine = new Set(inSession(L().questions).map(q => q.id));
-  const due = L().cards.filter(c => mine.has(c.question_id) && Date.parse(c.due_at) <= Date.now()).length;
-  el('studyMeta').textContent = freeLeft() + ' of ' + FREE_DAILY + ' free questions left today';
-  window.chizuDue = due;
-  // Scroll last: the question card showing or hiding changes how much room the chat has.
-  if (full || pinned) log.scrollTop = 1e9;
-}
-
-// ---------- Her described actions become animations ----------
-// Order matters: "happy tail swish" should swish, not squint.
+// ---------- Her *actions* become animations, not text ----------
 const ACTIONS = [[/tail/i, 'tail'], [/run/i, 'hop'], [/blink/i, 'h_blink'], [/tilt/i, 'h_tilt'], [/nod/i, 'h_nod'], [/ear/i, 'h_ears'],
   [/squint|smil|happy|purr/i, 'h_happy'], [/yawn|sleepy/i, 'h_yawn'], [/wide|surpris|gasp/i, 'h_surprise'], [/frown|pout|huff|grump|glare/i, 'h_frown']];
-function actFor(phrase) { const hit = ACTIONS.find(([r]) => r.test(phrase)); return hit && hit[1]; }
-// *Actions* are shown as her expression, not as text: strip them (single stars only, so **bold** survives).
+const actFor = phrase => ACTIONS.find(([r]) => r.test(phrase))?.[1];
 const ACTION_RE = /(^|[^*])\*(?!\*)([^*\n]+)\*(?!\*)\s*/g;
 const speech = t => t.replace(ACTION_RE, '$1').replace(/^\s+/, '');
-// While streaming, hold back anything after a lone * that may still become an action.
-function speechSoFar(t) {
+function speechSoFar(t) {   // hold back anything after a lone * that may still become an action
   const s = speech(t), lone = s.search(/(^|[^*])\*(?!\*)[^*\n]*$/);
   return lone < 0 ? s : s.slice(0, lone + (s[lone] === '*' ? 0 : 1));
 }
 
-// ---------- Actions ----------
-async function run(body, userText, quiet = false) {
-  if (sending) return;
-  sending = true; setBusy(true);
-  if (userText) bubble('me', userText);
-  // While the model thinks she does her thinking face; her reply then pops out of her head.
-  let her = null, pace = null, text = '', shown = 0, acted = false, waited = false;
-  if (!quiet) { document.body.classList.add('thinking'); window.thinkStart(); }
-  try {
-    state = await stream(body, chunk => {
-      if (!her) {
-        document.body.classList.remove('thinking');
-        her = mdBubble('her pop');
-        pace = pacer(her.session, () => { el('studyLog').scrollTop = 1e9; }, () => {
-          // Words done but the question card not here yet: she thinks instead of the screen looking frozen.
-          const len = text.length;
-          setTimeout(() => { if (sending && text.length === len && !document.body.classList.contains('thinking')) { document.body.classList.add('thinking'); window.thinkStart(); waited = true; } }, 700);
-        });
-      }
-      text += chunk;
-      const visible = speechSoFar(text);
-      if (visible.length > shown) { pace.push(visible.slice(shown)); shown = visible.length; }
-      if (!acted) {
-        const m = text.match(/\*([^*\n]+)\*/);
-        if (m) { acted = true; act(actFor(m[1]) || 'idle'); }
-        else if (!text.trimStart().startsWith('*') || text.length > 60) { acted = true; act('idle'); }  // wait while an *action* is still arriving
-      }
-    });
-    if (pace) { const rest = speech(text); if (rest.length > shown) pace.push(rest.slice(shown)); pace.end(); await pace.finished; }
-    session().then(s => s && writeCache(s.user.id));
-    render(false);
-    return text;
-  } catch (e) {
-    if (pace) pace.end();
-    bubble('err pop', e.message); act('idle');
-    if (/free questions/.test(e.message)) { say('treat'); }
-  } finally { sending = false; setBusy(false); document.body.classList.remove('thinking'); if (waited) act('idle'); }
+// ---------- What is on screen ----------
+let subjects = [], subject = localStorage.getItem('chizu_subject') || null, question = null, freeLeft = null;
+let busy = false, paused = false, pick = null;
+const current = () => subjects.find(s => s.id === subject) || null;
+const zh = () => (current()?.language || (/^zh/i.test(navigator.language) ? 'zh' : 'en')) === 'zh';
+const T = (cn, en) => zh() ? cn : en;
+
+function setSubject(id) {
+  subject = id; id ? localStorage.setItem('chizu_subject', id) : localStorage.removeItem('chizu_subject');
+  renderFolders();
 }
-// A hint about the open question, in the question's own language: the idea only, never the answer.
-function askHint(q, label) {
-  const zh = /[\u4e00-\u9fff]/.test(q.prompt);
-  const text = zh ? '我没看懂这道题。用中文给我一个小提示：只点出思路或第一步，不要说出答案，也不要换题。题目：\n' + q.prompt
-    : "I don't get this question. Give me a small hint: just the idea or the first step, never the answer, and don't change the question. Question:\n" + q.prompt;
-  return run({ action: 'learn-chat', text }, label || (zh ? '没看懂，给个提示' : "I don't get it."));
-}
-function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
-// "I'm tired" pauses the automatic questions until you say something again.
-let paused = false;
-// The option you tapped, and the answered question kept on screen for a moment to show her verdict.
-let pick = null, holdQ = null;
-// ---------- Subject folders ----------
-// Each top-level skill is a folder (e.g. Calculus); cards sit under topics inside it. The backend files them automatically.
-let subject = localStorage.getItem('chizu_subject') || null, lastNewest = null;
-const rootOf = id => { let s = L().skills.find(x => x.id === id); while (s?.parent_id) s = L().skills.find(x => x.id === s.parent_id); return s; };
-function folders() {
-  const mine = inSession(L().questions), out = new Map();
-  for (const q of mine) { const r = rootOf(q.skill_id); if (r && !out.has(r.id)) out.set(r.id, { id: r.id, name: r.name, cards: 0, due: 0 }); }
-  const byQ = new Map(mine.map(q => [q.id, q]));
-  for (const c of L().cards) { const q = byQ.get(c.question_id), r = q && rootOf(q.skill_id), f = r && out.get(r.id); if (f) { f.cards++; if (Date.parse(c.due_at) <= Date.now()) f.due++; } }
-  return [...out.values()];
-}
-function setSubject(id) { subject = id; id ? localStorage.setItem('chizu_subject', id) : localStorage.removeItem('chizu_subject'); renderFolders(); }
 function renderFolders() {
-  if (!L()) return;
-  const list = folders();
-  // Follow what is actually being studied: a new question in another subject switches the folder.
-  const newest = inSession(L().questions).filter(q => !q.review_card_id).at(-1);
-  if (newest && newest.id !== lastNewest) { if (lastNewest !== null) { const r = rootOf(newest.skill_id); if (r) subject = r.id, localStorage.setItem('chizu_subject', r.id); } lastNewest = newest.id; }
-  if (subject && !list.some(f => f.id === subject)) subject = null;
-  el('subjBar').hidden = !list.length;
-  el('subjName').textContent = list.find(f => f.id === subject)?.name || 'All subjects';
-  el('subjList').innerHTML = list.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) + '<small>' + f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '') + '</small></button>').join('') +
-    '<button data-subj="">+ New subject<small></small></button>';
+  el('subjBar').hidden = !subjects.length;
+  el('subjName').textContent = current()?.name || T('新科目', 'New subject');
+  el('studyText').placeholder = T('跟芝士说点什么…', 'Talk to Chizu…');
+  el('subjList').innerHTML = subjects.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) +
+    '<small>' + f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '') + '</small></button>').join('') +
+    '<button data-subj="">' + T('+ 新科目', '+ New subject') + '<small></small></button>';
   el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
     el('subjList').hidden = true;
-    if (!b.dataset.subj) { setSubject(null); bubble('her pop', 'What do you want to learn next, meow?'); el('studyText').focus(); return; }
-    setSubject(b.dataset.subj); paused = false; render(false);  // the old subject's card leaves with it
-    bubble('her pop', 'Switching to ' + rootOf(b.dataset.subj)?.name + ', meow~'); act('h_nod');
-    keepGoing(400);
+    if (!b.dataset.subj) { setSubject(null); showQuestion(null); bubble('her pop', T('接下来想学什么呀喵？', 'What do you want to learn next, meow?')); el('studyText').focus(); return; }
+    if (b.dataset.subj === subject) return;
+    setSubject(b.dataset.subj); paused = false; showQuestion(null);
+    bubble('her pop', T(`换到「${current()?.name}」喵～`, `Switching to ${current()?.name}, meow~`)); act('h_nod');
+    refresh().then(() => { if (!question) next(); });
   });
 }
 el('subjBtn').onclick = e => { e.stopPropagation(); el('subjList').hidden = !el('subjList').hidden; };
 document.addEventListener('click', e => { if (!e.target.closest('#subjBar')) el('subjList').hidden = true; });
-// The learning flow runs by itself: due reviews first, then new questions (the backend decides which).
-function keepGoing(delay = 1200) {
-  setTimeout(async () => {
-    if (sending || paused || !document.body.classList.contains('studying') || openQuestion()) return;
-    // Reviews rate themselves from right or wrong: right = Good, wrong = Again, so a missed point comes back until it sticks.
-    const rv = pendingReview();
-    if (rv) {
-      const at = L().attempts.filter(a => a.question_id === rv.id && !L().reviewedAttempts.includes(a.id)).at(-1);
-      if (at) await run({ action: 'learn-review', cardId: rv.review_card_id, attemptId: at.id, rating: at.correct ? 3 : 1 }, null, true);
-      return keepGoing(600);
-    }
-    run({ action: 'learn-next', ...(subject ? { subject } : {}) }, null);
-  }, delay);
+
+function showQuestion(q) {
+  question = q;
+  const card = el('studyQ'), stick = atBottom();
+  card.hidden = !q;
+  if (!q) { card.dataset.q = ''; return; }
+  if (q.id !== card.dataset.q) { card.dataset.q = q.id; card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter'); }
+  el('qPrompt').innerHTML = '<span class="qtag">' + esc(q.tag || '') + '</span>' + fmt(q.prompt); math(el('qPrompt'));
+  const box = el('qChoices'); box.innerHTML = '';
+  (q.options || []).forEach((o, i) => {
+    const b = document.createElement('button'); b.innerHTML = '<b>' + 'ABCD'[i] + '</b>' + fmt(o);
+    b.onclick = () => choose(q, i);
+    box.appendChild(b);
+  });
+  math(box);
+  el('qTyped').hidden = q.kind !== 'frq';
+  el('qAnswer').placeholder = T('写下你的答案', 'Your answer');
+  el('qCheck').textContent = T('提交', 'Check');
+  el('qLost').textContent = T('没看懂', "I don't get it");
+  if (stick) log().scrollTop = 1e9;
+}
+function showVerdict(v) {
+  if (!question || question.id !== v.questionId) return;
+  const btns = [...el('qChoices').children];
+  btns.forEach(b => b.disabled = true);
+  if (pick != null && btns[pick]) btns[pick].className = v.correct ? 'right' : 'wrong';
+  if (!v.correct && v.answerIndex != null && btns[v.answerIndex]) btns[v.answerIndex].className = 'right';
+}
+function applyState(st, full = true) {
+  subjects = st.subjects || [];
+  if (subject && !subjects.some(s => s.id === subject)) setSubject(null); else renderFolders();
+  freeLeft = st.freeLeft;
+  if (full) {
+    log().innerHTML = '';
+    if (!st.messages?.length) bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions."));
+    for (const m of st.messages || []) m.role === 'user' ? bubble('me', m.content) : staticMd('her', speech(m.content));
+  }
+  showQuestion(st.question);
+  log().scrollTop = 1e9;
 }
 
+// ---------- One turn: send, then show what comes back in order ----------
+function setBusy(b) { for (const id of ['studySend', 'qCheck', 'qLost', 'mHint', 'mUpload', 'mCamera', 'mPhotos', 'mTired']) el(id).disabled = b; }
+const thinking = on => { if (on && !document.body.classList.contains('thinking')) { document.body.classList.add('thinking'); window.thinkStart?.(); } if (!on) document.body.classList.remove('thinking'); };
+
+async function turn(body, userText, quiet = false) {
+  if (busy) return false;
+  busy = true; setBusy(true);
+  if (userText) bubble('me', userText);
+  if (!quiet) thinking(true);
+  let her = null, pace = null, text = '', shown = 0, acted = false;
+  const speaking = [];      // her bubbles still typing; a new question waits for them
+  let verdictAt = 0, cardShown = null;
+  const startBubble = () => { thinking(false); her = mdBubble('her pop'); pace = pacer(her.session); speaking.push(pace.finished); text = ''; shown = 0; acted = false; };
+  const endBubble = () => { if (!pace) return; const rest = speech(text); if (rest.length > shown) pace.push(rest.slice(shown)); pace.end(); her = pace = null; };
+  try {
+    await call(body, {
+      say: v => {
+        if (!her) startBubble();
+        text += v.text;
+        const visible = speechSoFar(text);
+        if (visible.length > shown) { pace.push(visible.slice(shown)); shown = visible.length; }
+        if (!acted) {
+          const m = text.match(/\*([^*\n]+)\*/);
+          if (m) { acted = true; act(actFor(m[1]) || 'idle'); }
+          else if (!text.trimStart().startsWith('*') || text.length > 60) acted = true;
+        }
+      },
+      say_end: () => endBubble(),
+      verdict: v => {
+        endBubble(); showVerdict(v); verdictAt = Date.now();
+        act(v.correct ? 'h_happy' : 'h_frown'); if (v.correct) fxCenter('✨');
+        startBubble(); acted = true; text = v.text; shown = speech(text).length; pace.push(speech(text)); endBubble();
+        // The next question is being written: she thinks once she has finished talking.
+        Promise.all(speaking).then(() => { if (busy) thinking(true); });
+      },
+      card: q => {
+        endBubble();
+        cardShown = (async () => {
+          await Promise.all(speaking);
+          const wait = verdictAt ? 1200 - (Date.now() - verdictAt) : 0;   // let the green or red sink in
+          if (wait > 0) await sleep(wait);
+          thinking(false); pick = null; showQuestion(q);
+        })();
+      },
+      subject: s => { if (!subjects.some(x => x.id === s.id)) subjects.push({ ...s, cards: 0, due: 0 }); setSubject(s.id); paused = false; },
+      state: st => applyState(st, false),
+      limit: () => say('treat'),
+      pause: () => { paused = true; },
+    });
+    endBubble();
+    await Promise.all(speaking); await cardShown;
+    return true;
+  } catch (e) {
+    endBubble();
+    bubble('err pop', e.message); act('idle');
+    if (pick != null) { pick = null; showQuestion(question); }
+    return false;
+  } finally {
+    busy = false; setBusy(false); thinking(false);
+    saveCacheSoon();
+  }
+}
+const refresh = () => turn({ action: 'state', subjectId: subject }, null, true);
+const next = () => subject && !paused && turn({ action: 'next', subjectId: subject });
+
+function choose(q, i) {
+  if (busy || pick != null) return;
+  pick = i; el('qChoices').children[i].className = 'picked';
+  turn({ action: 'answer', questionId: q.id, choice: i }, 'ABCD'[i] + ') ' + q.options[i]);
+}
+el('qCheck').onclick = () => {
+  const a = el('qAnswer').value.trim(); if (!question || !a || busy) return;
+  el('qAnswer').value = ''; el('qAnswer').blur();
+  turn({ action: 'answer', questionId: question.id, text: a }, a);
+};
+el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
+const hint = () => question && turn({ action: 'hint', questionId: question.id }, T('给个提示', 'Hint, please.'));
+el('qLost').onclick = hint;
 el('studySend').onclick = () => {
-  const t = el('studyText').value.trim(); if (!t) return;
-  el('studyText').value = ''; el('studyText').blur();  // send closes the keyboard, like ChatGPT
+  const t = el('studyText').value.trim(); if (!t || busy) return;
+  el('studyText').value = ''; el('studyText').blur();   // send closes the keyboard, like ChatGPT
   paused = false;
-  run({ action: 'learn-chat', text: t }, t);  // chatting never triggers an extra question; she may be asking you something
+  turn({ action: 'say', subjectId: subject, text: t }, t);
 };
 el('studyText').onkeydown = e => { if (e.key === 'Enter') el('studySend').click(); };
-el('qCheck').onclick = async () => {
-  const q = openQuestion(), a = el('qAnswer').value.trim(); if (!q || !a) return;
-  el('qAnswer').value = ''; el('qAnswer').blur();
-  answer(q, a, a);
-};
-// After an answer and its explanation, the next question comes by itself (a short pause to read first).
-async function answer(q, value, label) {
-  const reply = await run({ action: 'learn-answer', questionId: q.id, answer: value }, label);
-  if (!reply) { pick = null; holdQ = null; render(false); return; }
-  const ok = /Correct|对啦/.test(reply);
-  if (pick?.id === q.id) { pick.ok = ok; render(false); setTimeout(() => { if (holdQ === q) { holdQ = null; render(false); } }, 900); }
-  if (ok) fxCenter('✨');
-  keepGoing();
-}
-el('qAnswer').onkeydown = e => { if (e.key === 'Enter') el('qCheck').click(); };
-el('qLost').onclick = () => { const q = openQuestion(); if (q) askHint(q); };
-document.querySelectorAll('[data-rate]').forEach(b => b.onclick = async () => {
-  const q = pendingReview(); if (!q) return;
-  const at = L().attempts.filter(a => a.question_id === q.id && !L().reviewedAttempts.includes(a.id)).at(-1);
-  await run({ action: 'learn-review', cardId: q.review_card_id, attemptId: at.id, rating: Number(b.dataset.rate) });
-});
 
-// ---------- Open the sheet ----------
-const CACHE = 'chizu_state_cache';
-function readCache(user) { try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); return c && c.user === user ? c.state : null; } catch (_) { return null; } }
-function writeCache(user) { try { localStorage.setItem(CACHE, JSON.stringify({ user, state })); } catch (_) {} }
+// ---------- Opening study: last conversation at once from this device, then the server's ----------
+const CACHE = 'chizu_v3_cache';
+let cacheTimer = 0;
+function saveCacheSoon() {
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(async () => {
+    const s = await session(); if (!s) return;
+    try { await call({ action: 'state', subjectId: subject }, { state: st => localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })) }); } catch (_) {}
+  }, 1500);
+}
 async function openStudy() {
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   if (!s) return;
-  sid = await chizuSessionId(s.user.id);
-  // Show the last conversation instantly from this device, then refresh it from the server in the background.
-  const cached = readCache(s.user.id);
-  if (cached) { state = cached; render(true); }
+  try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
   try {
-    state = await loadState(); writeCache(s.user.id); render(true);
-    // Opening study starts right away for someone who has studied before; a new learner is asked what to learn.
-    if (inSession(L().questions).length) keepGoing(800);
-  } catch (e) { el('studyLog').innerHTML = ''; bubble('err', e.message); }
+    await call({ action: 'state', subjectId: subject }, { state: st => { applyState(st); localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })); } });
+  } catch (e) { if (!log().children.length) bubble('err', e.message); return; }
+  if (!question) next();
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
-// Swipes between her main screen and the chat follow the finger; they live in demo.html (dragToggle).
 
-// Tapping her small head (or Escape) brings her back to the middle of the screen.
-// Tapping her small head opens her menu (Hint / Upload a file / I'm tired). Leaving study is the × or a swipe.
+// ---------- Her menu (tap her small head) ----------
 el('frame').addEventListener('click', e => {
   if (!document.body.classList.contains('studying')) return;
   e.stopPropagation();
-  el('mHint').hidden = !openQuestion();
+  el('mHint').hidden = !question;
   el('chizuMenu').hidden = !el('chizuMenu').hidden;
 }, true);
 const closeMenu = () => { el('chizuMenu').hidden = true; };
 // Hint: guess first. The first tap only nudges; tapping again on the same question gets a hint, never the answer.
 let nudged = null;
 el('mHint').onclick = () => {
-  closeMenu(); const q = openQuestion(); if (!q) return;
-  if (nudged !== q.id) { nudged = q.id; bubble('her pop', 'Have a guess first, meow. Wrong is fine, it turns into a card to practise.'); act('h_tilt'); return; }
-  askHint(q, /[\u4e00-\u9fff]/.test(q.prompt) ? '给个提示' : 'Hint, please.');
+  closeMenu(); if (!question) return;
+  if (nudged !== question.id) { nudged = question.id; bubble('her pop', T('先猜一个嘛喵，错了也没关系，会变成卡片来练。', 'Have a guess first, meow. Wrong is fine, it turns into a card to practise.')); act('h_tilt'); return; }
+  hint();
 };
-el('mTired').onclick = () => { closeMenu(); paused = true; run({ action: 'learn-chat', text: "I'm tired." }, "I'm tired."); };
-// Upload: from her menu, or drop a file anywhere on the study screen (same as 1O1's upload: PDF, Word, images, text, up to 8MB).
+el('mTired').onclick = () => { closeMenu(); paused = true; turn({ action: 'say', subjectId: subject, text: T('我累了', "I'm tired.") }, T('我累了', "I'm tired.")); };
+
+// ---------- Upload: from her menu, or drop a file on the study screen ----------
 async function upload(file) {
-  if (!file || sending) return;
-  if (file.size > 8 * 1024 * 1024) return bubble('err pop', 'Please keep files under 8MB.');
-  // The backend can't read text in images, so photos are read here first (free, in the browser) and sent as text.
+  if (!file || busy) return;
+  if (file.size > 8 * 1024 * 1024) return bubble('err pop', T('文件要小于 8MB 喵。', 'Please keep files under 8MB, meow.'));
+  // Photos are read here (free, in the browser) and sent as text.
   if (file.type.startsWith('image/')) {
-    bubble('me', '📷 ' + (file.name || 'photo'));
-    const note = bubble('her pop', 'Reading your photo, meow…'); act('h_think');
+    const note = bubble('her pop', T('在看你的照片喵…', 'Reading your photo, meow…')); act('h_think');
     let text = '';
     try { text = (await ocr(file)).trim(); } catch (_) {}
     note.remove();
-    if (text.length < 8) { bubble('err pop', "I couldn't read the words in that photo. Try a closer, brighter shot of printed text."); return act('h_frown'); }
+    if (text.length < 8) { bubble('err pop', T('照片里的字看不清喵，靠近一点、亮一点再拍。', "I couldn't read that photo, meow. Try a closer, brighter shot.")); return act('h_frown'); }
     file = new File([text], (file.name || 'photo').replace(/\.[^.]+$/, '') + '.txt', { type: 'text/plain' });
   }
   const bytes = new Uint8Array(await file.arrayBuffer()); let bin = '';
   for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode(...bytes.subarray(i, i + 32768));
   paused = false;
-  await run({ action: 'learn-upload', name: file.name, base64: btoa(bin) }, '📎 ' + file.name);
-  keepGoing();
+  turn({ action: 'upload', subjectId: subject, name: file.name, base64: btoa(bin) }, '📎 ' + file.name);
 }
-// Tesseract (open source OCR) is loaded only the first time a photo is used.
 let tess = null;
 function ocr(file) {
   tess ??= new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => res(window.Tesseract); s.onerror = rej; document.head.appendChild(s); });
-  return tess.then(T => T.recognize(file, 'eng')).then(r => r.data.text);
+  return tess.then(T => T.recognize(file, 'eng+chi_sim')).then(r => r.data.text);
 }
 for (const [btn, input] of [['mUpload', 'mFile'], ['mCamera', 'mCam'], ['mPhotos', 'mPick']]) {
   el(btn).onclick = () => { closeMenu(); el(input).click(); };
@@ -479,7 +353,11 @@ window.addEventListener('drop', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('studying')) openSheet(''); });
 
-
+// ---------- Progress sheet: library by subject and topic, growth line ----------
+window.chizuLoadProgress = async () => {
+  if (!(await session())) return;
+  try { await call({ action: 'library' }, { library: p => window.chizuProgress?.(p) }); } catch (_) {}
+};
 // Focus sessions also count as study time in the same account (1O1's effective-time record).
 window.chizuSync = async p => {
   if (!(await session())) return;
@@ -487,12 +365,10 @@ window.chizuSync = async p => {
   const seconds = Math.min(p.sec, Math.floor((ended - started) / 1000) + 1);
   try { await sb.rpc('save_study_session', { p_id: p.id, p_started: p.started, p_ended: ended.toISOString(), p_seconds: seconds, p_skill: null }); } catch (_) {}
 };
-
 // 25 minutes of studying in the chat: a gentle break reminder.
-window.chizuBreak = () => { bubble('her pop', "That's 25 minutes, meow! Stretch, drink some water, then we'll keep going."); act('h_happy'); };
-
-// Small hook for testing the reply rendering in a browser console.
-window.chizuDebug = { mdBubble, pacer, speechSoFar, speech, show: (s, id) => { state = s; sid = id; render(true); } };
+window.chizuBreak = () => { bubble('her pop', T('学了 25 分钟啦喵！伸个懒腰，喝口水，再继续～', "That's 25 minutes, meow! Stretch, drink some water, then we'll keep going.")); act('h_happy'); };
+// For previews and console testing.
+window.chizuDebug = { show: st => applyState(st, true), card: q => showQuestion(q), verdict: (v, i) => { pick = i; showVerdict(v); } };
 
 // Coming back from Google sign-in opens the study sheet straight away.
 if (await finishSignIn()) openStudy();

@@ -307,22 +307,11 @@
   </div>
   <div id="studyMain" hidden>
     <div class="log" id="studyLog"></div>
-    <div class="qcard flash" id="studyFlash" hidden>
-      <span class="qtag" id="fTag">Card</span>
-      <div class="qprompt" id="fFront"></div>
-      <div class="fback" id="fBack" hidden></div>
-      <div class="row" id="fShowRow"><button id="fShow">Show answer</button></div>
-      <div class="row rate" id="fRate" hidden><button data-frate="1">Forgot</button><button data-frate="2">Hard</button><button data-frate="3">Good</button><button data-frate="4">Easy</button></div>
-    </div>
     <div class="qcard" id="studyQ" hidden>
       <div class="qprompt" id="qPrompt"></div>
       <div class="choices" id="qChoices"></div>
       <div class="row" id="qTyped"><input id="qAnswer" placeholder="Your answer" autocomplete="off"><button id="qCheck">Check</button></div>
       <div class="row"><button class="ghost" id="qLost">I don't get it</button></div>
-    </div>
-    <div class="qcard" id="studyRate" hidden>
-      <p>How well did you remember it?</p>
-      <div class="row rate"><button data-rate="1">Forgot</button><button data-rate="2">Hard</button><button data-rate="3">Good</button><button data-rate="4">Easy</button></div>
     </div>
     <div class="avatarSpace" aria-hidden="true"></div>
     <div class="chizumenu" id="chizuMenu" hidden role="menu">
@@ -981,6 +970,6 @@
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=32"></script>
+<script type="module" src="study.js?v=40"></script>
 </body>
 </html>
