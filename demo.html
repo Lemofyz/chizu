@@ -120,7 +120,7 @@
     <div class="bubble" id="bubble"></div>
   </div>
 </div>
-<div class="state" id="state">Pat her head · poke her tummy · touch her tail · hold to hug · double-tap and she walks a circle</div>
+<div class="state" id="state">Pat her head · poke her tummy · touch her tail · hold to hug · double-tap and she runs over to you</div>
 <div class="bar">
   <span class="time" id="time">25:00</span>
   <button data-min="25" class="sel">25</button>
@@ -221,8 +221,8 @@
     unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."]
   };
   // In pajamas she has her own moves and some of her own lines.
-  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_spin', wand:'pj_wand'};
-  const PLAIN = {hop:'spin', away:'mad'};
+  const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_run', wand:'pj_wand'};
+  const PLAIN = {hop:'run', away:'mad'};
   const LINES_PJ = {
     pat:["Mm… head pats are allowed at bedtime.","*rubs eyes* …again?"],
     tail:["*big stretch* …that was not a yawn.","Five more minutes."],
@@ -275,7 +275,7 @@
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
-  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','spin','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
+  const preload = o => [...(o === 'pj' ? Object.values(PJ) : ['idle','pat','tail','sleepy','mad','run','wand']), 'carry', 'pj_carry', 'carry_in', 'pj_carry_in'].forEach(hasClip);
   let busy = false, rest = '';  // rest becomes 'still' once her video breathes for her
   // The new clip always fades in on top while the old one keeps moving underneath, so moves blend instead of cutting.
   async function show(src, loop, ms = 350){
