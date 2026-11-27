@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <script>if(location.protocol==='http:'&&location.hostname==='chizu.vubeing.com')location.replace('https://'+location.host+location.pathname+location.search+location.hash)</script>
+<script>
+// TikTok's in-app browser won't play video inside a page: every clip pops up as a full-screen player with controls.
+// There she uses an animated image instead (no player, no jumping) and visitors get a hint to open their real browser.
+window.CHIZU_NOVIDEO = /musical_ly|BytedanceWebview|TikTok|trill/i.test(navigator.userAgent) || /[?&]novideo=1/.test(location.search);
+if (window.CHIZU_NOVIDEO) document.documentElement.classList.add('novideo');
+</script>
 <!-- PostHog product analytics (vubeing project): page views and the claim/study funnel. No emails, no session recording. -->
 <script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https://us.i.posthog.com',person_profiles:'identified_only',disable_session_recording:true});posthog.register({app:'chizu',src:new URLSearchParams(location.search).get('src')||sessionStorage.getItem('chizu_src')||'direct'});</script>
@@ -290,6 +296,9 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   @media (prefers-reduced-motion:reduce){.own{transition:opacity .2s;transform:translate(-50%,0)}}
   .acct{margin:-.2rem 0 .5rem;font-size:.78rem;color:var(--soft,#6c6676)}
   .acct button{font:inherit;color:inherit;background:none;border:0;padding:.35rem .2rem;text-decoration:underline;cursor:pointer}
+  .openhint{display:none;flex-basis:100%;text-align:center;font-size:.78rem;color:var(--soft,#6c6676);margin-top:.15rem}
+  html.novideo .openhint{display:block}
+  html.novideo #pic video{display:none!important}
 </style>
 </head>
 <body>
@@ -302,11 +311,12 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   <button class="pill" id="outfit" type="button" aria-label="Pajamas">👚</button>
   <button class="pill" id="remBtn" type="button" title="Study reminder">⏰</button>
   <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
+  <div class="openhint" id="openHint">She moves best in your browser: tap <b>⋯</b> then <b>Open in browser</b></div>
 </div>
 <div class="stage">
   <div class="thinkring" aria-hidden="true"></div>
   <div class="frame" id="frame" aria-label="Chizu. Tap her head, tummy or tail. Hold to hug.">
-    <div id="pic"><img src="assets/chizu.jpg" alt="Chizu" draggable="false"><video id="v0" muted playsinline preload="auto"></video><video id="v1" muted playsinline preload="auto"></video></div>
+    <div id="pic"><img src="assets/chizu.jpg" alt="Chizu" draggable="false"><video id="v0" muted playsinline webkit-playsinline disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" preload="auto"></video><video id="v1" muted playsinline webkit-playsinline disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" preload="auto"></video></div>
     <div class="bubble" id="bubble"></div>
   </div>
 </div>
@@ -478,6 +488,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   // Clips are downloaded once and kept in memory, so switching moves never waits on the network.
   const clip = {};
   function hasClip(name){
+    if (window.CHIZU_NOVIDEO) return Promise.resolve(null);
     if (!(name in clip)) clip[name] = fetch('assets/clips/' + name + '.mp4').then(r => r.ok ? r.blob() : null).then(b => b ? URL.createObjectURL(b) : null).catch(() => null);
     return clip[name];
   }
@@ -877,6 +888,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // ---------- Outfit ----------
   const outfitBtn = $('outfit');
+  const stillSrc = o => o === 'pj' ? 'assets/chizu_pj.jpg' : window.CHIZU_NOVIDEO ? 'assets/clips/idle.webp' : 'assets/chizu.jpg';
   let changing = false;
   async function wear(o, quiet){
     if (changing || (!quiet && busy)) return;
@@ -884,7 +896,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
       // Someone scoops her up and carries her off; she comes back already changed.
       changing = true; busy = true; say(o === 'pj' ? 'wear' : 'unwear');
       await playOnce(st.outfit === 'pj' ? 'pj_carry' : 'carry', 300);
-      st.outfit = o; save(); img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
+      st.outfit = o; save(); img.src = stillSrc(o);
       outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = pjLabel();
       preload(o);
       await playOnce(o === 'pj' ? 'pj_carry_in' : 'carry_in', 250, 0.7);
@@ -892,7 +904,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
       return;
     }
     st.outfit = o; save();
-    img.src = o === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
+    img.src = stillSrc(o);
     outfitBtn.classList.toggle('on', o === 'pj'); outfitBtn.innerHTML = pjLabel();
     vids.forEach(v => { v.classList.remove('on'); v.onended = null; }); busy = false; rest = ''; pic.className = '';
     preload(o);
@@ -1048,15 +1060,15 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   }, 5000);
 
   // iOS pauses page videos in the background and does not resume them; restart whatever she was doing.
-  function resumeVideo(){ const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
+  function resumeVideo(){ if (window.CHIZU_NOVIDEO) return; const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
   // iOS may refuse to start videos until the first touch: any touch wakes her up.
   // In-app browsers (TikTok, Instagram) often block autoplay, so a visitor sees a still photo and leaves.
   // If she isn't moving after a few seconds, she asks for a tap; and we record whether video played, per app.
   const inApp = (/musical_ly|BytedanceWebview|TikTok|trill/i.test(navigator.userAgent) ? 'tiktok' : /Instagram/i.test(navigator.userAgent) ? 'instagram' : /FBAN|FBAV/i.test(navigator.userAgent) ? 'facebook' : 'browser');
   let everPlayed = false; vids.forEach(v => v.addEventListener('playing', () => { everPlayed = true; }));
   const moving = () => everPlayed || vids.some(v => !v.paused && v.currentTime > 0);
-  setTimeout(() => { if (!moving() && !document.hidden) say('wake'); }, 3500);
-  setTimeout(() => window.posthog?.capture('video_check', { playing: moving(), app: inApp }), 6000);
+  setTimeout(() => { if (!window.CHIZU_NOVIDEO && !moving() && !document.hidden) say('wake'); }, 3500);
+  setTimeout(() => window.posthog?.capture('video_check', { playing: moving(), app: inApp, novideo: !!window.CHIZU_NOVIDEO }), 6000);
   document.addEventListener('pointerdown', resumeVideo, {passive: true});
   // Safety net: if only her still photo is showing (a clip came in too slowly), start her idle loop again.
   setInterval(() => { if (!document.hidden && !busy && !changing && !vids.some(v => v.classList.contains('on'))) act('idle'); }, 3000);

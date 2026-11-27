@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <script>if(location.protocol==='http:'&&location.hostname==='chizu.vubeing.com')location.replace('https://'+location.host+location.pathname+location.search+location.hash)</script>
+<script>
+// TikTok's in-app browser won't play video inside a page: every clip pops up as a full-screen player with controls.
+// There she uses an animated image instead (no player, no jumping) and visitors get a hint to open their real browser.
+window.CHIZU_NOVIDEO = /musical_ly|BytedanceWebview|TikTok|trill/i.test(navigator.userAgent) || /[?&]novideo=1/.test(location.search);
+if (window.CHIZU_NOVIDEO) document.documentElement.classList.add('novideo');
+</script>
 <script>(function(){var q=new URLSearchParams(location.search),s=q.get('src');if(s&&!/^selftest_home/.test(s)&&!q.has('paid')&&!location.hash&&!/chizu\.vubeing\.com/.test(document.referrer)&&!sessionStorage.getItem('chizu_to_demo')){sessionStorage.setItem('chizu_to_demo','1');location.replace('/demo.html'+location.search)}})()</script>
 <!-- PostHog product analytics (vubeing project): page views and the claim/study funnel. No emails, no session recording. -->
 <script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -139,7 +145,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
       <div style="display:flex;gap:.6rem;flex-wrap:wrap" class="ctas"><a class="btn" href="demo.html">Try the free demo</a><a class="btn ghost" href="#reserve">Claim yours</a></div>
     </div>
     <div class="stage">
-      <video id="heroVid" poster="assets/chizu.jpg" muted loop playsinline autoplay aria-label="Chizu, a tiny plush cat"></video>
+      <video id="heroVid" poster="assets/chizu.jpg" muted loop playsinline webkit-playsinline disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" autoplay aria-label="Chizu, a tiny plush cat"></video>
       <div class="tag">Based on a real cat named Cheese</div>
     </div>
   </div>
@@ -346,7 +352,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // Use her looping video once it exists; the photo stays as the poster until then.
   const v = document.getElementById('heroVid');
-  fetch('assets/chizu_idle.mp4', {method:'HEAD'}).then(r => { if (r.ok) { v.src = 'assets/chizu_idle.mp4'; v.play().catch(()=>{}); } }).catch(()=>{});
+  if (window.CHIZU_NOVIDEO) { const im = new Image(); im.src = 'assets/clips/idle.webp'; im.alt = 'Chizu, a tiny plush cat'; im.className = v.className; im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block'; v.replaceWith(im); }
+  else fetch('assets/chizu_idle.mp4', {method:'HEAD'}).then(r => { if (r.ok) { v.src = 'assets/chizu_idle.mp4'; v.play().catch(()=>{}); } }).catch(()=>{});
 
 </script>
 </body>
