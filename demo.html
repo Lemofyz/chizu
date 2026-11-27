@@ -1135,6 +1135,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   const el = document.getElementById('own'); let taps = 0, shown = false;
   async function show(why){
     if (window.chizuOwner || document.body.classList.contains('studying')) return;
+    // Never on top of something they are looking at (the study sheet, the shop, the share card): try again after it closes.
+    if (why !== 'pj' && document.querySelector('.sheet.open, #celebrate:not([hidden])')) { setTimeout(() => show(why), 8000); return; }
     if (why !== 'pj' && (shown || sessionStorage.getItem('chizu_own_seen'))) return;
     shown = true; sessionStorage.setItem('chizu_own_seen', '1');
     document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : 'Keep her for life?';
