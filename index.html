@@ -280,7 +280,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   function showDone(seat){
     $('res').style.display = 'none';
     $('doneNo').textContent = 'Chizu No.' + pad(seat.no);
-    $('donePrice').textContent = seat.price === 0 ? 'Spot #' + seat.pos + '. Free, yours for life.' : 'Spot #' + seat.pos + ', paid $' + seat.price + '.';
+    $('donePrice').textContent = seat.price === 0 ? 'Free, yours for life.' : 'Paid $' + seat.price + ', yours for life.';
     $('refundLine').hidden = !(seat.price > 0);
     $('donePerks').hidden = false;   // a free spot has nothing to refund, so don't invite the click
     $('done').style.display = 'block';
