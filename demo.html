@@ -288,6 +288,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   .own-x{position:absolute;top:6px;right:8px;border:0;background:none;font-size:1.3rem;color:var(--soft,#6c6676);width:36px;height:36px;cursor:pointer}
   body.studying .own{display:none}
   @media (prefers-reduced-motion:reduce){.own{transition:opacity .2s;transform:translate(-50%,0)}}
+  .acct{margin:-.2rem 0 .5rem;font-size:.78rem;color:var(--soft,#6c6676)}
+  .acct button{font:inherit;color:inherit;background:none;border:0;padding:.35rem .2rem;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -344,11 +346,12 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 <div class="sheet tall" id="studySheet" role="dialog" aria-label="Study with Chizu">
   <button class="close" data-close>×</button>
   <h3>Study with Chizu</h3>
+  <p class="acct" id="studyAcct" hidden><span id="studyWho"></span> · <button type="button" id="studyOut">Sign out</button></p>
   <div class="subjbar" id="subjBar" hidden><button id="subjBtn">📁 <span id="subjName">New subject</span> ▾</button><div class="subjlist" id="subjList" hidden></div></div>
   <div id="studyAuth">
     <p>Tell her what you're studying. She explains, quizzes you, and brings back what you missed the next day.</p>
     <div class="row"><button id="studyLogin">Continue with Google</button></div>
-    <p style="margin-top:.5rem;font-size:.75rem">Sign-in keeps your questions and review cards. Free: 5 new questions a day.</p>
+    <p style="margin-top:.5rem;font-size:.75rem">Sign-in keeps your questions and review cards. New accounts get 20 fish: 1 fish per new question, reviews are free.</p>
   </div>
   <div id="studyMain" hidden>
     <div class="log" id="studyLog"></div>
@@ -1065,7 +1068,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=48"></script>
+<script type="module" src="study.js?v=49"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>

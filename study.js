@@ -19,6 +19,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // ---------- Sign-in ----------
 async function session() { return (await sb.auth.getSession()).data.session; }
 el('studyLogin').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+el('studyOut').onclick = async () => {   // sign out of study (and of the claim page, which shares this sign-in)
+  if (!confirm('Sign out? Your fish, questions and review cards stay saved on your account.')) return;
+  await sb.auth.signOut().catch(() => {});
+  window.posthog?.capture('signed_out'); window.posthog?.reset?.();
+  location.reload();
+};
 async function finishSignIn() {
   const code = new URLSearchParams(location.search).get('code');
   if (!code) return false;
@@ -327,6 +333,7 @@ async function openStudy() {
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
+  el('studyAcct').hidden = !s; if (s) el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you');
   if (!s) return;
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
   try {
