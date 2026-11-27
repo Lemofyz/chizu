@@ -422,7 +422,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     play:["Feather! FEATHER!","Okay, one round. Then back to work.","I wasn't excited. That was a stretch."],
     wear:["Wait, where are we going? …oh. Pajamas.","Pajama time? Carry me gently."],
     unwear:["Up we go. Back to awake mode.","Changing again? You're lucky I'm patient."],
-    wantpj:["Pajamas are for cats with a home. …Are you offering?","I'd wear them for you. If I were yours."]
+    wantpj:["Pajamas are for cats with a home. …Are you offering?","I'd wear them for you. If I were yours."],
+    wake:["Psst… tap me. I'm awake, promise.","Tap my head. I'll wake up for you."]
   };
   // In pajamas she has her own moves and some of her own lines.
   const PJ = {idle:'pj_idle', pat:'pj_rub', tail:'pj_yawn', sleepy:'pj_sleep', hug:'pj_sleep', away:'pj_mad', hop:'pj_run', wand:'pj_wand'};
@@ -1049,6 +1050,12 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   // iOS pauses page videos in the background and does not resume them; restart whatever she was doing.
   function resumeVideo(){ const v = vids[cur]; if (v && v.src && v.classList.contains('on') && v.paused) { v.play().catch(() => act('idle')); } }
   // iOS may refuse to start videos until the first touch: any touch wakes her up.
+  // In-app browsers (TikTok, Instagram) often block autoplay, so a visitor sees a still photo and leaves.
+  // If she isn't moving after a few seconds, she asks for a tap; and we record whether video played, per app.
+  const inApp = (/musical_ly|BytedanceWebview|TikTok|trill/i.test(navigator.userAgent) ? 'tiktok' : /Instagram/i.test(navigator.userAgent) ? 'instagram' : /FBAN|FBAV/i.test(navigator.userAgent) ? 'facebook' : 'browser');
+  const moving = () => vids.some(v => v.classList.contains('on') && !v.paused && v.currentTime > 0);
+  setTimeout(() => { if (!moving() && !document.hidden) say('wake'); }, 3500);
+  setTimeout(() => window.posthog?.capture('video_check', { playing: moving(), app: inApp }), 6000);
   document.addEventListener('pointerdown', resumeVideo, {passive: true});
   // Safety net: if only her still photo is showing (a clip came in too slowly), start her idle loop again.
   setInterval(() => { if (!document.hidden && !busy && !changing && !vids.some(v => v.classList.contains('on'))) act('idle'); }, 3000);
