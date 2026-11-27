@@ -141,8 +141,9 @@ function renderFolders() {
   el('subjName').textContent = current()?.name || T('新科目', 'New subject');
   el('studyText').placeholder = T('跟芝士说点什么…', 'Talk to Chizu…');
   el('mUpload').textContent = T('照片或文件', 'Photo or file');
-  el('subjList').innerHTML = subjects.map(f => '<button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) +
-    '<small>' + T(f.cards + ' 张卡' + (f.due ? ' · ' + f.due + ' 张待复习' : ''), f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '')) + '</small></button>').join('') +
+  el('subjList').innerHTML = subjects.map(f => '<div class="subjrow"><button data-subj="' + f.id + '"' + (f.id === subject ? ' class="on"' : '') + '>' + esc(f.name) +
+    '<small>' + T(f.cards + ' 张卡' + (f.due ? ' · ' + f.due + ' 张待复习' : ''), f.cards + (f.cards === 1 ? ' card' : ' cards') + (f.due ? ' · ' + f.due + ' due' : '')) + '</small></button>' +
+    '<button class="subjdel" data-del="' + f.id + '" aria-label="' + T('删除这个科目', 'Delete this subject') + '" title="' + T('删除', 'Delete') + '">×</button></div>').join('') +
     '<button data-subj="">' + T('+ 新科目', '+ New subject') + '<small></small></button>';
   el('subjList').querySelectorAll('[data-subj]').forEach(b => b.onclick = () => {
     el('subjList').hidden = true;
@@ -153,6 +154,20 @@ function renderFolders() {
     refresh().then(() => { if (!question) next(); });
   });
 }
+// Delete a subject (and its cards and questions) after a confirm.
+el('subjList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  e.stopPropagation();
+  const f = subjects.find(x => x.id === b.dataset.del); if (!f) return;
+  if (!confirm(T(`删除「${f.name}」和它的 ${f.cards} 张卡片？删了就找不回来了。`, `Delete "${f.name}" and its ${f.cards} cards? This can't be undone.`))) return;
+  const { data, error } = await sb.rpc('chizu_delete_subject', { p_id: f.id });
+  if (error || !data) { bubble('her pop', T('删不掉喵，再试一次？', "Couldn't delete that, meow. Try again?")); return; }
+  window.posthog?.capture('subject_deleted', { cards: f.cards });
+  subjects = subjects.filter(x => x.id !== f.id);
+  if (subject === f.id) { setSubject(null); showQuestion(null); }
+  renderFolders(); el('subjList').hidden = !subjects.length ? true : false;
+  refresh();
+});
 el('subjBtn').onclick = e => { e.stopPropagation(); el('subjList').hidden = !el('subjList').hidden; };
 document.addEventListener('click', e => { if (!e.target.closest('#subjBar')) el('subjList').hidden = true; });
 
