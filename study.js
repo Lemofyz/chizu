@@ -215,8 +215,35 @@ function showVerdict(v) {
   if (!cardEl || cardEl.dataset.q !== v.questionId) return;
   markCard(cardEl, v, pick);
 }
+// ---------- Daily lines: welcome back, today's reviews, leftovers from yesterday, all done ----------
+const dayKey = () => new Date().toLocaleDateString('en-CA');
+const sum = k => subjects.reduce((n, f) => n + (f[k] || 0), 0);
+let prevDue = null;
+function dueWatch() {   // called whenever fresh subject counts arrive
+  const due = sum('due');
+  if (prevDue > 0 && due === 0 && localStorage.getItem('chizu_alldone_day') !== dayKey()) {
+    localStorage.setItem('chizu_alldone_day', dayKey());
+    bubble('her pop', T('今天该复习的全部搞定啦喵！明天见～', "That's every review for today, done! See you tomorrow, meow~"));
+    window.act?.('h_happy'); window.posthog?.capture('reviews_all_done');
+  }
+  prevDue = due;
+}
+function greet() {      // once per day when study opens
+  if (!subjects.length) return;
+  const last = +localStorage.getItem('chizu_last_study') || 0, today = dayKey();
+  const firstToday = localStorage.getItem('chizu_last_study_day') !== today;
+  localStorage.setItem('chizu_last_study', Date.now()); localStorage.setItem('chizu_last_study_day', today);
+  if (!firstToday) return;
+  const days = last ? Math.floor((Date.now() - last) / 864e5) : 0, due = sum('due'), overdue = sum('overdue');
+  let line = days >= 2 ? T(`欢迎回来喵！${days} 天没见了，今天的学习可以开始啦～`, `Welcome back! It's been ${days} days, meow. Ready to start today's study?`)
+                       : T('新的一天喵～', 'New day, meow~');
+  if (due) line += ' ' + T(`今天有 ${due} 张卡要复习。`, `You have ${due} card${due === 1 ? '' : 's'} to review today.`);
+  if (overdue) line += ' ' + T(`其中 ${overdue} 张是昨天没复习完的，我们先做这些。`, `${overdue} of them ${overdue === 1 ? 'has' : 'have'} been waiting since yesterday, let's start there.`);
+  if (days < 2 && !due) return;   // nothing worth saying on an ordinary day with no reviews
+  bubble('her pop', line); window.act?.(days >= 2 ? 'h_happy' : 'h_nod');
+}
 function applyState(st, full = true) {
-  subjects = st.subjects || [];
+  subjects = st.subjects || []; dueWatch();
   if (st.fish != null) window.chizuWallet?.(st.fish);
   if (subject && !subjects.some(s => s.id === subject)) setSubject(null); else renderFolders();
   if (full) {
@@ -339,7 +366,7 @@ function saveCacheSoon() {
     const s = await session(); if (!s) return;
     try { await call({ action: 'state', subjectId: subject }, { state: st => {
       localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st }));
-      if (!busy) { subjects = st.subjects || subjects; renderFolders(); }   // fresh card counts in the folder list
+      if (!busy) { subjects = st.subjects || subjects; renderFolders(); dueWatch(); }   // fresh card counts in the folder list
     } }); } catch (_) {}
   }, 1500);
 }
@@ -354,6 +381,7 @@ async function openStudy() {
   try {
     await call({ action: 'state', subjectId: subject }, { state: st => { applyState(st); localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })); } });
   } catch (e) { if (!log().children.length) bubble('err', e.message); return; }
+  greet();
   if (!question) next();
 }
 el('studyBtn').onclick = () => el('studySheet').classList.contains('open') ? openSheet('') : openStudy();
