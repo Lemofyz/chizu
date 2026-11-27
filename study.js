@@ -355,7 +355,8 @@ async function turn(body, userText, quiet = false) {
     saveCacheSoon();
   }
 }
-const refresh = () => turn({ action: 'state', subjectId: subject }, null, true);
+const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return ''; } })();
+const refresh = () => turn({ action: 'state', subjectId: subject, tz: TZ }, null, true);
 const next = () => subject && !paused && turn({ action: 'next', subjectId: subject });
 
 function choose(q, i, c) {
@@ -385,7 +386,7 @@ function saveCacheSoon() {
   clearTimeout(cacheTimer);
   cacheTimer = setTimeout(async () => {
     const s = await session(); if (!s) return;
-    try { await call({ action: 'state', subjectId: subject }, { state: st => {
+    try { await call({ action: 'state', subjectId: subject, tz: TZ }, { state: st => {
       localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st }));
       if (!busy) { subjects = st.subjects || subjects; renderFolders(); dueWatch(); }   // fresh card counts in the folder list
     } }); } catch (_) {}
@@ -400,7 +401,7 @@ async function openStudy() {
   if (!s) return;
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
   try {
-    await call({ action: 'state', subjectId: subject }, { state: st => { applyState(st); localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })); } });
+    await call({ action: 'state', subjectId: subject, tz: TZ }, { notes_made: v => setTimeout(() => bubble('her pop', T(`昨天的聊天我整理成学习笔记啦（${v.count} 份），点我的头，在菜单「学习笔记」里看喵～`, `I turned yesterday's chat into study notes (${v.count}). Tap my head, then Study notes, meow~`)), 400), state: st => { applyState(st); localStorage.setItem(CACHE, JSON.stringify({ user: s.user.id, st })); } });
   } catch (e) { if (!log().children.length) bubble('err', e.message); return; }
   greet();
   if (!question) next();
@@ -415,6 +416,32 @@ el('frame').addEventListener('click', e => {
   el('chizuMenu').hidden = !el('chizuMenu').hidden;
 }, true);
 const closeMenu = () => { el('chizuMenu').hidden = true; };
+// ---------- Study notes: each past day's chat, summarized per subject ----------
+function noteMd(md) {   // headings, bullet lists and bold, one line at a time
+  let out = '', inList = false;
+  for (const raw of String(md).split('\n')) {
+    const line = esc(raw.trim()).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    const li = line.match(/^[-*•]\s+(.*)$/);
+    if (li) { if (!inList) { out += '<ul>'; inList = true; } out += '<li>' + li[1] + '</li>'; continue; }
+    if (inList) { out += '</ul>'; inList = false; }
+    if (!line) continue;
+    const h = line.match(/^#{1,4}\s+(.*)$/);
+    out += h ? '<h4>' + h[1] + '</h4>' : '<p>' + line + '</p>';
+  }
+  return out + (inList ? '</ul>' : '');
+}
+async function showNotes() {
+  closeMenu();
+  let p = el('notesPanel');
+  if (!p) { p = document.createElement('div'); p.id = 'notesPanel'; p.className = 'notes-panel'; el('studySheet').appendChild(p); }
+  p.innerHTML = '<div class="notes-head"><b>' + T('学习笔记', 'Study notes') + '</b><button type="button" class="notes-x" aria-label="Close">×</button></div><div class="notes-list"><p class="notes-empty">' + T('读取中…', 'Loading…') + '</p></div>';
+  p.hidden = false; p.querySelector('.notes-x').onclick = () => { p.hidden = true; };
+  let notes = [];
+  try { await call({ action: 'notes' }, { notes: v => { notes = v.notes || []; } }); } catch (e) { p.querySelector('.notes-list').innerHTML = '<p class="notes-empty">' + esc(e.message) + '</p>'; return; }
+  window.posthog?.capture('notes_opened', { count: notes.length });
+  p.querySelector('.notes-list').innerHTML = notes.length ? notes.map((n, i) => '<details' + (i ? '' : ' open') + '><summary>' + esc(n.day.slice(5).replace('-', '/')) + (n.subject_name ? ' · ' + esc(n.subject_name) : '') + '</summary><div class="notes-body">' + noteMd(n.summary) + '</div></details>').join('')
+    : '<p class="notes-empty">' + T('还没有笔记。今天学的东西，明天会自动整理成笔记放在这里喵。', 'No notes yet. Whatever we study today becomes notes here tomorrow, meow.') + '</p>';
+}
 // Hint: guess first. The first tap only nudges; tapping again on the same question gets a hint, never the answer.
 let nudged = null;
 el('mHint').onclick = () => {
@@ -422,6 +449,7 @@ el('mHint').onclick = () => {
   if (nudged !== question.id) { nudged = question.id; bubble('her pop', T('先猜一个嘛喵，错了也没关系，会变成卡片来练。', 'Have a guess first, meow. Wrong is fine, it turns into a card to practise.')); act('h_tilt'); return; }
   hint();
 };
+el('mNotes').onclick = () => showNotes();
 el('mTired').onclick = () => { closeMenu(); paused = true; turn({ action: 'say', subjectId: subject, text: T('我累了', "I'm tired.") }, T('我累了', "I'm tired.")); };
 
 // ---------- Upload: from her menu, or drop a file on the study screen ----------

@@ -314,6 +314,15 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   .catask .catask-yes{background:var(--deep,#3e3352);border-color:var(--deep,#3e3352);color:#fff}
   .catask button:active{transform:scale(.97)}
   @media (prefers-reduced-motion:reduce){.catask{transition:opacity .16s}}
+  .notes-panel{position:absolute;inset:0;z-index:20;background:var(--bg,#fbfefb);border-radius:inherit;display:flex;flex-direction:column;padding:14px 16px}
+  .notes-panel[hidden]{display:none}
+  .notes-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;font-size:1.05rem}
+  .notes-x{border:0;background:none;font-size:1.4rem;color:var(--soft,#6c6676);width:36px;height:36px;cursor:pointer}
+  .notes-list{overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+  .notes-list details{border:1px solid var(--line,#ece9f1);border-radius:14px;padding:.55rem .8rem;margin-bottom:.5rem;background:#fff}
+  .notes-list summary{font-weight:700;cursor:pointer}
+  .notes-body h4{margin:.7rem 0 .2rem;font-size:.9rem;color:var(--deep,#3e3352)}.notes-body ul{margin:.2rem 0;padding-left:1.1rem}.notes-body li{font-size:.9rem;line-height:1.5;margin:.15rem 0}
+  .notes-empty{color:var(--soft,#6c6676);font-size:.9rem}
 </style>
 </head>
 <body>
@@ -383,6 +392,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     <div class="chizumenu" id="chizuMenu" hidden role="menu">
       <button id="mHint" role="menuitem">Hint</button>
       <button id="mUpload" role="menuitem">Photo or file</button>
+      <button id="mNotes" role="menuitem">Study notes</button>
       <button id="mTired" role="menuitem">I'm tired</button>
       <!-- One picker: phones offer camera, photo library and files on their own. -->
       <input type="file" id="mFile" hidden accept="image/*,.pdf,.docx,.txt,.md,application/pdf,text/plain">
@@ -1026,6 +1036,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // ---------- Session done: she hops into a card with a share prompt ----------
   function celebrate(min, perfect){
+    window.chizuStudied?.(st.focusSec);
     $('cImg').src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     $('cTitle').textContent = Math.round(min) + ' minutes, done.';
     $('cSub').textContent = (window.chizuOwner ? (window.chizuName || 'Chizu') + ' (No.' + String(window.chizuNo).padStart(4, '0') + ') watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
@@ -1123,7 +1134,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=53"></script>
+<script type="module" src="study.js?v=54"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>
@@ -1148,7 +1159,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     if (why !== 'pj' && document.querySelector('.sheet.open, #celebrate:not([hidden])')) { setTimeout(() => show(why), 8000); return; }
     if (why !== 'pj' && (shown || sessionStorage.getItem('chizu_own_seen'))) return;
     shown = true; sessionStorage.setItem('chizu_own_seen', '1');
-    document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : 'Keep her for life?';
+    document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : why === 'study' ? 'Good session! Keep her for life?' : 'Keep her for life?';
     const l = (await rpc('chizu_line') || [])[0];
     if (l) {
       const no = String(l.next_pos - 1).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
@@ -1162,7 +1173,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   document.getElementById('ownX').addEventListener('click', () => { hide(); window.posthog?.capture('own_nudge_closed'); });
   document.getElementById('ownBtn').addEventListener('click', () => window.posthog?.capture('own_nudge_clicked'));
   window.chizuOwnShow = show;
-  window.chizuOwnNudge = () => { if (++taps >= 4) show(); };
+  window.chizuOwnNudge = () => {};   // taps and play never trigger it (user, 11-27)
   // 'Really played' = 3 taps, or started a focus timer, or opened study. Sent once per session as Meta's StartTrial,
   // so ads can be optimized for people who actually play with her, not people who only click.
   let played = 0;
@@ -1174,7 +1185,11 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     window.fbq?.('track', 'StartTrial', { value: 0, currency: 'USD', content_name: 'Chizu demo', predicted_ltv: 0 }, { eventID: id });
     window.posthog?.capture('demo_played', { how: kind, src: SRC });
   };
-  setTimeout(() => { if (document.visibilityState === 'visible') show(); }, 45000);
+  // After a real study session: today's focus reaches 30 minutes and a session ends. Once a day.
+  window.chizuStudied = focusSec => {
+    const day = new Date().toLocaleDateString('en-CA');
+    if (focusSec >= 1800 && localStorage.getItem('chizu_own_day') !== day) { localStorage.setItem('chizu_own_day', day); sessionStorage.removeItem('chizu_own_seen'); show('study'); }
+  };
 })();
 </script>
 </body>
