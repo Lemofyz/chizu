@@ -325,6 +325,9 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   .notes-empty{color:var(--soft,#6c6676);font-size:.9rem}
   #studyAuth button.ghost{background:transparent;color:var(--deep,#3e3352);border:1.5px solid var(--line,#ece9f1)}
   .acct .save{font-weight:700;color:var(--deep,#3e3352)}
+  /* the subject button sits top-left: put the account line under it, clear of the close button */
+  *:has(> #subjBar:not([hidden])) > #studyAcct{padding-top:2.3rem}
+  #studyAcct{padding-right:44px}
 </style>
 </head>
 <body>
@@ -1137,7 +1140,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=56"></script>
+<script type="module" src="study.js?v=57"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>

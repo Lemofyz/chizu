@@ -408,7 +408,7 @@ async function openStudy() {
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   el('studyAcct').hidden = !s;
   if (s && s.user?.is_anonymous) {
-    el('studyWho').innerHTML = T('游客模式：换设备或清除浏览器数据会丢失记录 · ', 'Guest mode: switching devices or clearing your browser loses your progress · ') + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
+    el('studyWho').innerHTML = T('游客模式，换设备会丢记录 · ', 'Guest mode: progress stays on this device · ') + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
     el('studySave').onclick = saveWithGoogle; el('studyOutWrap').hidden = true;
   } else if (s) { el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you'); el('studyOutWrap').hidden = false; }
   if (!s) return;
