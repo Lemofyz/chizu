@@ -305,6 +305,15 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   html.novideo #pic video{display:none!important}
   .subjrow{display:flex;gap:.15rem;align-items:stretch}.subjrow > button:first-child{flex:1}
   .subjlist .subjdel{flex:none;width:34px;justify-content:center;align-items:center;padding:0;color:var(--soft);font-size:1.1rem;font-weight:400}
+  .catask{position:fixed;z-index:80;max-width:min(78vw,280px);background:#fff;border:1px solid var(--line,#ece9f1);border-radius:18px 18px 18px 6px;box-shadow:0 12px 32px rgba(62,51,82,.18);padding:10px 12px;opacity:0;transform:translateY(6px) scale(.96);transform-origin:0 100%;transition:opacity .16s ease-out,transform .2s cubic-bezier(.23,1,.32,1)}
+  .catask.below{border-radius:6px 18px 18px 18px;transform-origin:0 0}
+  .catask.in{opacity:1;transform:none}
+  .catask p{margin:0 0 .55rem;font-size:.9rem;line-height:1.45;color:var(--ink,#26222e)}
+  .catask-row{display:flex;gap:.4rem;justify-content:flex-end}
+  .catask button{font:inherit;font-weight:700;font-size:.85rem;border-radius:999px;padding:.45rem .9rem;cursor:pointer;border:1px solid var(--line,#ece9f1);background:#fff;color:var(--deep,#3e3352)}
+  .catask .catask-yes{background:var(--deep,#3e3352);border-color:var(--deep,#3e3352);color:#fff}
+  .catask button:active{transform:scale(.97)}
+  @media (prefers-reduced-motion:reduce){.catask{transition:opacity .16s}}
 </style>
 </head>
 <body>
@@ -1114,7 +1123,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=52"></script>
+<script type="module" src="study.js?v=53"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>

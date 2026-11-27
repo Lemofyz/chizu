@@ -19,8 +19,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // ---------- Sign-in ----------
 async function session() { return (await sb.auth.getSession()).data.session; }
 el('studyLogin').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+// Chizu asks in a speech bubble at her head's top-right instead of a browser dialog. Resolves true / false.
+function catAsk(text, yes, no) {
+  return new Promise(resolve => {
+    document.querySelector('.catask')?.remove();
+    const b = document.createElement('div'); b.className = 'catask'; b.setAttribute('role', 'alertdialog');
+    b.innerHTML = '<p></p><div class="catask-row"><button type="button" class="catask-no"></button><button type="button" class="catask-yes"></button></div>';
+    b.querySelector('p').textContent = text; b.querySelector('.catask-yes').textContent = yes; b.querySelector('.catask-no').textContent = no;
+    document.body.appendChild(b);
+    const f = document.getElementById('frame')?.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight;
+    let left = f && f.width ? f.right - 18 : (innerWidth - w) / 2, top = f && f.width ? f.top - h + 18 : 80;
+    if (top < 8) { top = f && f.width ? f.bottom - 6 : 80; b.classList.add('below'); }
+    b.style.left = Math.max(8, Math.min(left, innerWidth - w - 8)) + 'px'; b.style.top = top + 'px';
+    requestAnimationFrame(() => b.classList.add('in'));
+    const done = v => { b.classList.remove('in'); document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', esc); setTimeout(() => b.remove(), 200); resolve(v); };
+    const away = e => { if (!b.contains(e.target)) done(false); }, esc = e => { if (e.key === 'Escape') done(false); };
+    b.querySelector('.catask-yes').onclick = () => done(true); b.querySelector('.catask-no').onclick = () => done(false);
+    setTimeout(() => { document.addEventListener('pointerdown', away, true); document.addEventListener('keydown', esc); }, 0);
+    b.querySelector('.catask-no').focus({ preventScroll: true });
+  });
+}
 el('studyOut').onclick = async () => {   // sign out of study (and of the claim page, which shares this sign-in)
-  if (!confirm('Sign out? Your fish, questions and review cards stay saved on your account.')) return;
+  if (!await catAsk(T('要退出登录吗？小鱼干、题目和复习卡都会留在你的账号里。', 'Sign out? Your fish, questions and review cards stay saved on your account.'), T('退出', 'Sign out'), T('不了', 'Stay'))) return;
   await sb.auth.signOut().catch(() => {});
   window.posthog?.capture('signed_out'); window.posthog?.reset?.();
   location.reload();
@@ -159,7 +179,8 @@ el('subjList').addEventListener('click', async e => {
   const b = e.target.closest('[data-del]'); if (!b) return;
   e.stopPropagation();
   const f = subjects.find(x => x.id === b.dataset.del); if (!f) return;
-  if (!confirm(T(`删除「${f.name}」和它的 ${f.cards} 张卡片？删了就找不回来了。`, `Delete "${f.name}" and its ${f.cards} cards? This can't be undone.`))) return;
+  el('subjList').hidden = true;
+  if (!await catAsk(T(`要删掉「${f.name}」吗？${f.cards} 张卡片会一起没了，找不回来喵。`, `Delete "${f.name}"? Its ${f.cards} card${f.cards === 1 ? '' : 's'} go too, and I can't bring them back.`), T('删掉', 'Delete'), T('留着', 'Keep'))) return;
   const { data, error } = await sb.rpc('chizu_delete_subject', { p_id: f.id });
   if (error || !data) { bubble('her pop', T('删不掉喵，再试一次？', "Couldn't delete that, meow. Try again?")); return; }
   window.posthog?.capture('subject_deleted', { cards: f.cards });
