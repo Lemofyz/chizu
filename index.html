@@ -352,7 +352,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // Use her looping video once it exists; the photo stays as the poster until then.
   const v = document.getElementById('heroVid');
-  if (window.CHIZU_NOVIDEO) { const im = new Image(); im.src = 'assets/clips/idle.webp'; im.alt = 'Chizu, a tiny plush cat'; im.className = v.className; im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block'; v.replaceWith(im); }
+  if (window.CHIZU_NOVIDEO) { const im = new Image(); im.src = 'assets/clips/idle.webp?v=2'; im.alt = 'Chizu, a tiny plush cat'; im.className = v.className; im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block'; v.replaceWith(im); }
   else fetch('assets/chizu_idle.mp4', {method:'HEAD'}).then(r => { if (r.ok) { v.src = 'assets/chizu_idle.mp4'; v.play().catch(()=>{}); } }).catch(()=>{});
 
 </script>

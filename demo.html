@@ -560,13 +560,13 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   // Moves run one at a time: overlapping switches used to fight over the same video player and garble the picture.
   let actChain = Promise.resolve();
   function act(name, fadeMs){ const p = actChain.then(() => actNow(name, fadeMs)); actChain = p.catch(() => {}); return p; }
-  // Animated-image versions of her main moves (frames x 83 ms), used only where video can't play inline.
-  const WEBP_MS = {pat: 5063, tail: 5063, sleepy: 5063, mad: 5063, run: 8051, wand: 5063, spin: 5063};
+  // Animated-image versions of her main moves, used only where video can't play inline.
+  const WEBP_MS = {pat: 5092, tail: 5092, sleepy: 5092, mad: 5092, run: 8107, wand: 5092, spin: 5092};   // 720px, 15 fps (frames x 67 ms)
   const webpBlob = {};
   async function webpPlay(key){
     busy = true;
     try {
-      webpBlob[key] ||= fetch('assets/clips/' + key + '.webp').then(r => r.ok ? r.blob() : null).catch(() => null);
+      webpBlob[key] ||= fetch('assets/clips/' + key + '.webp?v=2').then(r => r.ok ? r.blob() : null).catch(() => null);
       const b = await webpBlob[key]; if (!b) return;
       const url = URL.createObjectURL(b), im = new Image(); im.src = url;   // a fresh URL so it always starts from frame one
       await im.decode().catch(() => {});
@@ -905,7 +905,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 
   // ---------- Outfit ----------
   const outfitBtn = $('outfit');
-  const stillSrc = o => o === 'pj' ? 'assets/chizu_pj.jpg' : window.CHIZU_NOVIDEO ? 'assets/clips/idle.webp' : 'assets/chizu.jpg';
+  const stillSrc = o => o === 'pj' ? 'assets/chizu_pj.jpg' : window.CHIZU_NOVIDEO ? 'assets/clips/idle.webp?v=2' : 'assets/chizu.jpg';
   let changing = false;
   async function wear(o, quiet){
     if (changing || (!quiet && busy)) return;
