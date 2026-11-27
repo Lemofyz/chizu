@@ -1053,7 +1053,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   // In-app browsers (TikTok, Instagram) often block autoplay, so a visitor sees a still photo and leaves.
   // If she isn't moving after a few seconds, she asks for a tap; and we record whether video played, per app.
   const inApp = (/musical_ly|BytedanceWebview|TikTok|trill/i.test(navigator.userAgent) ? 'tiktok' : /Instagram/i.test(navigator.userAgent) ? 'instagram' : /FBAN|FBAV/i.test(navigator.userAgent) ? 'facebook' : 'browser');
-  const moving = () => vids.some(v => v.classList.contains('on') && !v.paused && v.currentTime > 0);
+  let everPlayed = false; vids.forEach(v => v.addEventListener('playing', () => { everPlayed = true; }));
+  const moving = () => everPlayed || vids.some(v => !v.paused && v.currentTime > 0);
   setTimeout(() => { if (!moving() && !document.hidden) say('wake'); }, 3500);
   setTimeout(() => window.posthog?.capture('video_check', { playing: moving(), app: inApp }), 6000);
   document.addEventListener('pointerdown', resumeVideo, {passive: true});
