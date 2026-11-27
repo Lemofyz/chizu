@@ -323,6 +323,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   .notes-list summary{font-weight:700;cursor:pointer}
   .notes-body h4{margin:.7rem 0 .2rem;font-size:.9rem;color:var(--deep,#3e3352)}.notes-body ul{margin:.2rem 0;padding-left:1.1rem}.notes-body li{font-size:.9rem;line-height:1.5;margin:.15rem 0}
   .notes-empty{color:var(--soft,#6c6676);font-size:.9rem}
+  #studyAuth button.ghost{background:transparent;color:var(--deep,#3e3352);border:1.5px solid var(--line,#ece9f1)}
+  .acct .save{font-weight:700;color:var(--deep,#3e3352)}
 </style>
 </head>
 <body>
@@ -384,8 +386,9 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   <div class="subjbar" id="subjBar" hidden><button id="subjBtn">📁 <span id="subjName">New subject</span> ▾</button><div class="subjlist" id="subjList" hidden></div></div>
   <div id="studyAuth">
     <p>Tell her what you're studying. She explains, quizzes you, and brings back what you missed the next day.</p>
-    <div class="row"><button id="studyLogin">Continue with Google</button></div>
-    <p style="margin-top:.5rem;font-size:.75rem">Sign-in keeps your questions and review cards. New accounts get 20 fish: 1 fish per new question, reviews are free.</p>
+    <div class="row"><button id="studyGuest">Start studying now</button></div>
+    <div class="row" style="margin-top:.4rem"><button id="studyLogin" class="ghost">Continue with Google</button></div>
+    <p style="margin-top:.5rem;font-size:.75rem">No sign-up needed to start. Save with Google anytime so your cards and notes follow you. You get 20 fish: 1 fish per new question, reviews are free.</p>
   </div>
   <div id="studyMain" hidden>
     <div class="log" id="studyLog"></div>
@@ -1134,7 +1137,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=54"></script>
+<script type="module" src="study.js?v=55"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>

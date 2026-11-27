@@ -19,6 +19,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // ---------- Sign-in ----------
 async function session() { return (await sb.auth.getSession()).data.session; }
 el('studyLogin').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+// Study without an account: a guest session keeps cards and notes on this device; saving with Google later keeps everything.
+el('studyGuest').onclick = async () => {
+  el('studyGuest').disabled = true;
+  const { error } = await sb.auth.signInAnonymously().catch(e => ({ error: e }));
+  el('studyGuest').disabled = false;
+  if (error) { el('studyGuest').textContent = T('请用 Google 继续', 'Please continue with Google'); return; }
+  window.posthog?.capture('guest_started'); openStudy();
+};
+const saveWithGoogle = () => { window.posthog?.capture('guest_save_clicked'); return sb.auth.linkIdentity({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
 // Chizu asks in a speech bubble at her head's top-right instead of a browser dialog. Resolves true / false.
 function catAsk(text, yes, no) {
   return new Promise(resolve => {
@@ -397,7 +406,11 @@ async function openStudy() {
   openSheet('studySheet');
   const s = await session();
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
-  el('studyAcct').hidden = !s; if (s) el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you');
+  el('studyAcct').hidden = !s;
+  if (s && s.user?.is_anonymous) {
+    el('studyWho').innerHTML = T('游客模式：换设备或清除浏览器数据会丢失记录 · ', "Guest: switching devices or clearing your browser loses your progress · ") + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
+    el('studySave').onclick = saveWithGoogle; el('studyOut').hidden = true;
+  } else if (s) { el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you'); el('studyOut').hidden = false; }
   if (!s) return;
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
   try {

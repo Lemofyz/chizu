@@ -301,9 +301,10 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     e.preventDefault();
     const { data: { session } } = await sb.auth.getSession();
     window.posthog?.capture('claim_clicked', { signed_in: !!session, next_price: line.next_price });
-    if (!session) {   // sign in first; they come back to the picker
+    if (!session || session.user?.is_anonymous) {   // sign in first (a guest links Google, keeping their progress); they come back to the picker
       sessionStorage.setItem('chizu_claim', '1');
-      return sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+      const o = { provider: 'google', options: { redirectTo: location.origin + location.pathname } };
+      return session ? sb.auth.linkIdentity(o) : sb.auth.signInWithOAuth(o);
     }
     if (resume) {   // finish paying for the spot they are holding (same Stripe page)
       try { const j = await call({ action: 'claim', no: resume }); if (j.url) location.href = j.url; else if (j.seat) showDone(j.seat); }
