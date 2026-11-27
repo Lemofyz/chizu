@@ -310,7 +310,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   <button class="pill" id="playBtn" type="button" title="Feather wand">🪶<span class="lbl"> Play</span></button>
   <button class="pill" id="outfit" type="button" aria-label="Pajamas">👚</button>
   <button class="pill" id="remBtn" type="button" title="Study reminder">⏰</button>
-  <div class="reserve"><a href="index.html#reserve">Free demo · Reserve the full Chizu</a></div>
+  <div class="reserve"><a href="index.html#reserve" id="homeLink">Free demo · Take her home</a></div>
   <div class="openhint" id="openHint">She moves best in your browser: tap <b>⋯</b> then <b>Open in browser</b></div>
 </div>
 <div class="stage">
@@ -415,7 +415,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     away:["How dare you slack off. I saw that.","Phone? During focus? Unbelievable.","I was guarding your focus and you just LEFT?"],
     back:["…fine. I forgive you. Timer's still waiting.","Hmph. Back to work. I'm watching this time."],
     sleepy:["*yawn* It's late. Bed?","My eyes are closing. Yours too."],
-    locked:["50 minutes is in the full version. Reserve me?"],
+    locked:["50 minutes is for my owners. Take me home?"],
     eat:["Mmm. Acceptable fish.","*munch* …you may bring more.","Fish. My favourite. After the other fish."],
     nofish:["No fish yet. Focus with me and I'll catch some.","Fish come from focus. I don't make the rules. I do, actually."],
     full:["I'm full. Save it for later."],
@@ -1104,6 +1104,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   const SRC = (new URLSearchParams(location.search).get('src') || sessionStorage.getItem('chizu_src') || 'direct').replace(/[^\w-]/g, '').slice(0, 40);
   sessionStorage.setItem('chizu_src', SRC);
   if (!sessionStorage.getItem('chizu_counted')) { sessionStorage.setItem('chizu_counted', '1'); rpc('chizu_visit', { p_src: SRC }); }
+  // The top link shows today's price, so it's clear she can be yours right now.
+  rpc('chizu_line').then(d => { const l = d && d[0]; if (l && !window.chizuOwner) document.getElementById('homeLink').textContent = 'Free demo · Take her home ' + (l.next_price > 0 ? 'for $' + l.next_price : 'free'); });
   const el = document.getElementById('own'); let taps = 0, shown = false;
   async function show(why){
     if (window.chizuOwner || document.body.classList.contains('studying')) return;
