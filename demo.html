@@ -1093,7 +1093,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>
   <p id="ownP">Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.</p>
-  <a class="own-btn" id="ownBtn" href="index.html#reserve">See your number</a>
+  <a class="own-btn" id="ownBtn" href="index.html#reserve">Take her home</a>
 </div>
 <script>
 // Counts the visit by source (same as the homepage), then after a little play offers the next spot once per session.
@@ -1116,7 +1116,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     if (l) {
       const no = String(l.next_pos).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
       document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.';
-      document.getElementById('ownBtn').textContent = 'Claim No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
+      document.getElementById('ownBtn').textContent = 'Take her home · No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
     }
     el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
     window.posthog?.capture('own_nudge_shown', { next_price: l?.next_price, why: why || 'play' });

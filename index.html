@@ -129,7 +129,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </style>
 </head>
 <body>
-<nav><div class="wrap"><a class="brand" href="#">vubeing <span>· Chizu</span></a><span style="display:flex;gap:.5rem"><a class="btn ghost" href="demo.html">Free demo</a><a class="btn" href="#reserve">Get Chizu</a></span></div></nav>
+<nav><div class="wrap"><a class="brand" href="#">vubeing <span>· Chizu</span></a><span style="display:flex;gap:.5rem"><a class="btn ghost" href="demo.html">Free demo</a><a class="btn" href="#reserve">Take her home</a></span></div></nav>
 
 <header class="hero">
   <div class="wrap">
@@ -142,7 +142,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
         <div><span>Claimed so far</span><b data-count>—</b></div>
         <div><span>Next: No.<em data-nextno style="font-style:normal">—</em></span><b data-price>—</b></div>
       </div>
-      <div style="display:flex;gap:.6rem;flex-wrap:wrap" class="ctas"><a class="btn" href="demo.html">Try the free demo</a><a class="btn ghost" href="#reserve">Claim yours</a></div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap" class="ctas"><a class="btn" href="demo.html">Try the free demo</a><a class="btn ghost" href="#reserve">Take her home</a></div>
     </div>
     <div class="stage">
       <video id="heroVid" poster="assets/chizu.jpg" muted loop playsinline webkit-playsinline disablepictureinpicture disableremoteplayback x-webkit-airplay="deny" autoplay aria-label="Chizu, a tiny plush cat"></video>
@@ -190,7 +190,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
           <div class="nums" id="nums" hidden></div>
           <input type="text" id="name" name="name" maxlength="24" placeholder="Name for your certificate (optional)" aria-label="Name for your certificate">
         </div>
-        <button class="btn" type="submit" id="resBtn"><span id="resLabel">Claim No.<span data-nextno>0000</span> · <span data-price>Free</span></span></button>
+        <button class="btn" type="submit" id="resBtn"><span id="resLabel">Take her home · No.<span data-nextno>0000</span> · <span data-price>Free</span></span></button>
         <p class="fine" id="resMsg" hidden></p>
       </form>
       <p class="fine"><b>You get right away:</b> 50 fish for studying with her (about 50 new questions), her pajamas to keep, and a share card with her number and the name you give her.</p>
@@ -287,7 +287,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     pick = numOf(next);
     $('yourNo').textContent = 'Your Chizu will be No.' + pad(numOf(next)) + '. Give her a name for your card:';
     $('picker').hidden = false;
-    $('resLabel').innerHTML = line.next_price === 0 ? 'Claim it free' : 'Pay $' + line.next_price + ' with Stripe';
+    $('resLabel').innerHTML = line.next_price === 0 ? 'Take her home, free' : 'Take her home · $' + line.next_price;
     // Others may be buying right now: keep the spot and price on screen current while the picker is open.
     clearInterval(live);
     live = setInterval(async () => { if ($('picker').hidden || resume) return clearInterval(live); const was = line.next_pos; await loadLine();
