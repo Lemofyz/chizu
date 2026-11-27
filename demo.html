@@ -898,14 +898,14 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     act('idle');
   }
   // Outfits are for owners: in the demo the pajama button offers her instead of changing her.
-  const pjLabel = () => '👚<span class="lbl"> ' + (st.outfit === 'pj' ? 'Pajamas on' : window.chizuNo ? 'Pajamas' : 'Pajamas 🔒') + '</span>';
+  const pjLabel = () => '👚<span class="lbl"> ' + (st.outfit === 'pj' ? 'Pajamas on' : window.chizuOwner ? 'Pajamas' : 'Pajamas 🔒') + '</span>';
   function ownerOutfits(){
-    if (!window.chizuNo && st.outfit === 'pj') wear('plain', true);
+    if (!window.chizuOwner && st.outfit === 'pj') wear('plain', true);
     outfitBtn.innerHTML = pjLabel();
   }
   window.addEventListener('chizu-owner', () => { outfitBtn.innerHTML = pjLabel(); if (localStorage.getItem('chizu_owner_pj') === '1' && st.outfit !== 'pj') wear('pj', true); });
   outfitBtn.onclick = async () => {
-    if (!window.chizuNo) { say('wantpj'); window.chizuOwnShow?.('pj'); window.posthog?.capture('outfit_locked_tapped'); return; }
+    if (!window.chizuOwner) { say('wantpj'); window.chizuOwnShow?.('pj'); window.posthog?.capture('outfit_locked_tapped'); return; }
     const o = st.outfit === 'pj' ? 'plain' : 'pj'; await wear(o); localStorage.setItem('chizu_owner_pj', o === 'pj' ? '1' : '0'); outfitBtn.innerHTML = pjLabel();
   };
   $('playBtn').onclick = () => { if (busy || changing) return; say('play'); act('wand'); };
@@ -941,7 +941,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     await pic.decode().catch(() => {});
     g.drawImage(pic, (W - 620) / 2, 300, 620, 620);
     // Her number, front and centre: the screenshot shows off which Chizu is yours (only for people who reserved one).
-    if (window.chizuNo) {
+    if (window.chizuOwner) {
       // Their own Chizu number, once they have paid for her (chizu_my_reservation).
       const label = (window.chizuName ? window.chizuName + ' · ' : '') + 'Chizu No.' + String(window.chizuNo).padStart(4, '0');
       g.font = '700 40px Nunito, system-ui, sans-serif';
@@ -956,7 +956,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     g.fillText(hm(st.focusSec), W / 2, 270);
     const days = lastDays(7), max = Math.max(1500, ...days.map(x => x.sec)), week = days.reduce((a, x) => a + x.sec, 0);
     g.fillStyle = '#6c6676'; g.font = '600 34px ' + sans;
-    g.fillText((zh ? '本周 ' : 'This week ') + hm(week) + (st.streak ? (zh ? ' · 连续 ' + st.streak + ' 天' : ' · ' + st.streak + '-day streak') : ''), W / 2, window.chizuNo ? 1018 : 990);
+    g.fillText((zh ? '本周 ' : 'This week ') + hm(week) + (st.streak ? (zh ? ' · 连续 ' + st.streak + ' 天' : ' · ' + st.streak + '-day streak') : ''), W / 2, window.chizuOwner ? 1018 : 990);
     const bw = 64, gap = 36, x0 = (W - (7 * bw + 6 * gap)) / 2, base = 1190;
     days.forEach((x, i) => {
       const h = Math.max(6, Math.round(x.sec / max * 130)), bx = x0 + i * (bw + gap);
@@ -982,7 +982,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   function celebrate(min, perfect){
     $('cImg').src = st.outfit === 'pj' ? 'assets/chizu_pj.jpg' : 'assets/chizu.jpg';
     $('cTitle').textContent = Math.round(min) + ' minutes, done.';
-    $('cSub').textContent = (window.chizuNo ? (window.chizuName || 'Chizu') + ' (No.' + String(window.chizuNo).padStart(4, '0') + ') watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
+    $('cSub').textContent = (window.chizuOwner ? (window.chizuName || 'Chizu') + ' (No.' + String(window.chizuNo).padStart(4, '0') + ') watched' : 'Chizu watched') + ' you study for ' + hm(st.focusSec) + ' today' + (st.streak ? ' · 🔥 ' + st.streak + '-day streak' : '') + (perfect ? '. No phone the whole time.' : '.');
     $('celebrate').hidden = false;
   }
   $('cShare').onclick = () => { $('celebrate').hidden = true; shareToday(); };
@@ -1068,7 +1068,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=49"></script>
+<script type="module" src="study.js?v=50"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>
@@ -1086,7 +1086,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   if (!sessionStorage.getItem('chizu_counted')) { sessionStorage.setItem('chizu_counted', '1'); rpc('chizu_visit', { p_src: SRC }); }
   const el = document.getElementById('own'); let taps = 0, shown = false;
   async function show(why){
-    if (window.chizuNo || document.body.classList.contains('studying')) return;
+    if (window.chizuOwner || document.body.classList.contains('studying')) return;
     if (why !== 'pj' && (shown || sessionStorage.getItem('chizu_own_seen'))) return;
     shown = true; sessionStorage.setItem('chizu_own_seen', '1');
     document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : 'Keep her for life?';
