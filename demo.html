@@ -486,6 +486,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   let st = {day: today(), focusSec: 0, goalMin: 25, streak: 0, goalDay: '', fish: 1, full: 2, fedAt: Date.now(), pats: 0, remind: '', remindDay: '', outfit: 'plain', seen: '', hist: {}};
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(_){}
   if (st.day !== today()) { st.day = today(); st.focusSec = 0; }
+  window.chizuToday = () => ({ focusMin: Math.floor((st.focusSec || 0) / 60), streak: st.streak || 0 });   // what she knows about today, sent with chat
   if (st.goalDay && st.goalDay !== today() && st.goalDay !== yesterday()) st.streak = 0;
   const save = () => {
     st.hist = st.hist || {}; st.hist[today()] = st.focusSec;
@@ -1140,7 +1141,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
 </script>
 <script src="study-config.js"></script>
 <script src="clip-align.js?v=4"></script>
-<script type="module" src="study.js?v=57"></script>
+<script type="module" src="study.js?v=58"></script>
 <div id="own" class="own" role="dialog" aria-labelledby="ownT" hidden>
   <button type="button" class="own-x" id="ownX" aria-label="Close">×</button>
   <b id="ownT">Keep her for life?</b>

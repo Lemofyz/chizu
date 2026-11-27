@@ -384,7 +384,7 @@ el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t || busy) return;
   el('studyText').value = ''; el('studyText').blur();   // send closes the keyboard, like ChatGPT
   paused = false;
-  turn({ action: 'say', subjectId: subject, text: t }, t);
+  turn({ action: 'say', subjectId: subject, tz: TZ, ...(window.chizuToday?.() || {}), text: t }, t);
 };
 el('studyText').onkeydown = e => { if (e.key === 'Enter') el('studySend').click(); };
 
@@ -463,7 +463,7 @@ el('mHint').onclick = () => {
   hint();
 };
 el('mNotes').onclick = () => showNotes();
-el('mTired').onclick = () => { closeMenu(); paused = true; turn({ action: 'say', subjectId: subject, text: T('我累了', "I'm tired.") }, T('我累了', "I'm tired.")); };
+el('mTired').onclick = () => { closeMenu(); paused = true; turn({ action: 'say', subjectId: subject, tz: TZ, ...(window.chizuToday?.() || {}), text: T('我累了', "I'm tired.") }, T('我累了', "I'm tired.")); };
 
 // ---------- Upload: from her menu, or drop a file on the study screen ----------
 async function upload(file) {
