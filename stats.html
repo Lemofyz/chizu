@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chizu 实时数据</title><meta name="robots" content="noindex,nofollow">
+<style>
+body{margin:0;background:#111216;color:#f2f2f4;font:15px/1.5 -apple-system,system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.4rem;margin:.2rem 0 .2rem}h2{font-size:1.05rem;margin:1.8rem 0 .6rem;color:#c9c3ff}
+.m{color:#9a9aa6;font-size:.85rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.k{background:#1b1c22;border:1px solid #2a2b33;border-radius:14px;padding:12px 14px}.k b{display:block;font-size:1.6rem;font-variant-numeric:tabular-nums}.k span{color:#9a9aa6;font-size:.8rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.88rem}
+th,td{padding:6px 8px;border-bottom:1px solid #24252d;text-align:right;white-space:nowrap}th{color:#9a9aa6;font-weight:600}
+td:first-child,th:first-child{text-align:left}.wrap{overflow-x:auto;background:#16171c;border:1px solid #24252d;border-radius:12px}
+.ours{color:#8a8a96}.tag{font-size:.75rem;background:#2a2b33;border-radius:6px;padding:1px 6px;margin-left:6px;color:#bdbdc8}
+.err{color:#ff8a8a}
+</style></head>
+<body><main>
+<h1>Chizu 实时数据</h1><div class="m" id="note">读取中…</div>
+<div class="kpis" id="kpis"></div>
+<h2>漏斗（每天多少人，洛杉矶时间，不含自测）</h2><div class="wrap"><table id="funnel"></table></div>
+<h2>来源（近 7 天：打开的人 / 真玩了的人）</h2><div class="wrap"><table id="sources"></table></div>
+<h2>每天访问次数（按来源，UTC 日）</h2><div class="wrap"><table id="visits"></table></div>
+<h2>主人（领号 / 付款）</h2><div class="wrap"><table id="seats"></table></div>
+<div class="m" style="margin-top:18px">数据来源：Supabase（领号、访问、学习）+ PostHog（漏斗，按人去重）。自己和团队的号标「自己」，不算进收入。每分钟自动刷新。</div>
+</main>
+<script>
+const K = new URLSearchParams(location.search).get('k') || '';
+const API = 'https://csfbptayfnqtvsjneeaf.supabase.co/functions/v1/chizu-stats?k=' + encodeURIComponent(K);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad = n => String(n).padStart(4, '0');
+const la = t => t ? new Date(t).toLocaleString('zh-CN', { timeZone: 'America/Los_Angeles', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+const STEPS = [['$pageview','打开'],['demo_played','真玩了'],['own_nudge_shown','看到卡片'],['own_nudge_clicked','点卡片'],['outfit_locked_tapped','点睡衣锁'],['claim_clicked','点带她回家'],['checkout_started','进付款页'],['purchased','付款'],['study_opened','打开学习'],['question_answered','答题'],['focus_completed','专注满一轮']];
+function table(el, head, rows) { el.innerHTML = '<tr>' + head.map(h => '<th>' + h + '</th>').join('') + '</tr>' + rows.map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join(''); }
+async function load() {
+  let d;
+  try { const r = await fetch(API, { cache: 'no-store' }); d = await r.json(); if (!r.ok) throw new Error(d.error || r.status); }
+  catch (e) { $('note').innerHTML = '<span class="err">读不到数据（链接里的 k 对吗？）</span>'; return; }
+  $('note').textContent = '更新于 ' + la(d.at) + '（洛杉矶时间）';
+  const paid = d.seats.filter(s => s.status === 'paid'), outside = paid.filter(s => !s.ours);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const f = {}; for (const [day, ev, n] of d.funnel) (f[day] ||= {})[ev] = n;
+  const t = f[today] || {}, week = ev => Object.values(f).reduce((a, x) => a + (x[ev] || 0), 0);
+  const kp = [['今天打开', t['$pageview'] || 0], ['今天真玩', t['demo_played'] || 0], ['今天点带她回家', t['claim_clicked'] || 0],
+    ['外部付款单数', outside.filter(s => s.price > 0).length], ['外部收入', '$' + outside.reduce((a, s) => a + s.price, 0)], ['主人（含免费）', paid.length + '（自己 ' + (paid.length - outside.length) + '）'],
+    ['14 天打开', week('$pageview')], ['14 天真玩', week('demo_played')], ['登录账号', d.study.accounts], ['学过的人', d.study.learners], ['答过的题', d.study.answered], ['专注满一轮', d.study.focusSessions]];
+  $('kpis').innerHTML = kp.map(([a, b]) => '<div class="k"><b>' + b + '</b><span>' + a + '</span></div>').join('');
+  const days = Object.keys(f).sort().reverse();
+  table($('funnel'), ['日期', ...STEPS.map(s => s[1])], days.map(day => [day.slice(5), ...STEPS.map(([e]) => f[day][e] || '·')]));
+  table($('sources'), ['来源', '打开的人', '真玩的人', '真玩比例'], d.sources.map(([s, v, p]) => [esc(s), v, p, v ? Math.round(p / v * 100) + '%' : '—']));
+  const vd = {}, srcs = new Set(); for (const v of d.visits) { if (/^selftest/.test(v.src)) continue; (vd[v.day] ||= {})[v.src] = (vd[v.day][v.src] || 0) + v.n; srcs.add(v.src); }
+  const cols = [...srcs].sort((a, b) => Object.values(vd).reduce((x, r) => x + (r[b] || 0), 0) - Object.values(vd).reduce((x, r) => x + (r[a] || 0), 0));
+  table($('visits'), ['日期', '合计', ...cols.map(esc)], Object.keys(vd).sort().reverse().map(day => [day.slice(5), cols.reduce((a, c) => a + (vd[day][c] || 0), 0), ...cols.map(c => vd[day][c] || '·')]));
+  table($('seats'), ['编号', '价格', '状态', '名字', '来源', '时间'], d.seats.slice().reverse().map(s => [
+    'No.' + pad(s.no) + (s.ours ? '<span class="tag">自己</span>' : ''), '$' + s.price,
+    ({paid: '已付', pending: '付款中', expired: '过期', refunded: '已退'})[s.status] || s.status, esc(s.name) || '—', esc(s.source) || '—', la(s.paid || s.created)]));
+}
+load(); setInterval(load, 60000);
+</script>
+</body></html>
