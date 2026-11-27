@@ -560,6 +560,21 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
   // Moves run one at a time: overlapping switches used to fight over the same video player and garble the picture.
   let actChain = Promise.resolve();
   function act(name, fadeMs){ const p = actChain.then(() => actNow(name, fadeMs)); actChain = p.catch(() => {}); return p; }
+  // Animated-image versions of her main moves (frames x 83 ms), used only where video can't play inline.
+  const WEBP_MS = {pat: 5063, tail: 5063, sleepy: 5063, mad: 5063, run: 8051, wand: 5063, spin: 5063};
+  const webpBlob = {};
+  async function webpPlay(key){
+    busy = true;
+    try {
+      webpBlob[key] ||= fetch('assets/clips/' + key + '.webp').then(r => r.ok ? r.blob() : null).catch(() => null);
+      const b = await webpBlob[key]; if (!b) return;
+      const url = URL.createObjectURL(b), im = new Image(); im.src = url;   // a fresh URL so it always starts from frame one
+      await im.decode().catch(() => {});
+      img.src = url;
+      await new Promise(r => setTimeout(r, WEBP_MS[key] - 250));
+      img.src = stillSrc(st.outfit); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally { busy = false; }
+  }
   async function actNow(name, fadeMs = 350){
     const pre = st.outfit === 'pj' ? 'pj_' : '';
     if (inStudy() && name === 'idle') name = 'h_blink';
@@ -571,6 +586,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     const key = head ? pre + name : (st.outfit === 'pj' ? PJ[name] : (PLAIN[name] || name));
     const pop = inStudy() && !head;
     if (pop) document.body.classList.add('popout');
+    // TikTok's browser: her moves play as animated images (same clips, no video player), then she settles back to idle.
+    if (window.CHIZU_NOVIDEO && !inStudy() && !head && st.outfit !== 'pj' && WEBP_MS[key]) { document.body.classList.remove('popout'); return webpPlay(key); }
     const src = key ? await hasClip(key) : null;
     if (src) {
       if (LOOPS.includes(name)) { rest = 'still'; pic.className = rest; busy = false; }
