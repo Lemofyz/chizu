@@ -27,3 +27,5 @@
 - Home: https://chizu.vubeing.com/
 - Demo: https://chizu.vubeing.com/demo.html
 - Maker: vubeing (https://vubeing.com), hello@vubeing.com
+- [Chizu vs Finch](https://chizu.vubeing.com/blog/chizu-vs-finch/): self-care bird vs study cat, compared
+- [Chizu vs Forest](https://chizu.vubeing.com/blog/chizu-vs-forest/): a dying tree vs a sulking cat, compared
