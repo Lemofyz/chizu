@@ -494,8 +494,8 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(_){} render();
   };
 
-  // Fullness drops one heart every 8 hours, never below empty. She gets peckish, never sad.
-  const HEART_MS = 8 * 3600e3;
+  // Fullness drops one heart every 4 hours (user, 11-27: 8 was too slow), never below empty. She gets peckish, never sad.
+  const HEART_MS = 4 * 3600e3;
   function settleHunger(){
     const drops = Math.floor((Date.now() - st.fedAt) / HEART_MS);
     if (drops > 0) { st.full = Math.max(0, st.full - drops); st.fedAt += drops * HEART_MS; }
@@ -738,8 +738,9 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     setTimeout(() => celebrate(total / 60, perfect), 1200);
   }
   // Leaving during focus: the timer waits, she turns her back, then forgives you.
-  // Away = another tab, minimized, or another window in front. The timer stops while you're away.
-  const isAway = () => document.hidden || !document.hasFocus();
+  // Away = she can't be seen: another tab, minimized, the phone switched to another app. The timer stops while you're away.
+  // Another window in front does NOT count (user, 11-27): on a second screen, or beside your notes, she stays visible and keeps counting.
+  const isAway = () => document.hidden;
   function wentAway(){ if (!hiddenAt) hiddenAt = Date.now(); }
   function cameBack(){
     if (!hiddenAt || isAway()) return;
@@ -750,7 +751,6 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     }
   }
   document.addEventListener('visibilitychange', () => document.hidden ? wentAway() : cameBack());
-  window.addEventListener('blur', wentAway);
   window.addEventListener('focus', cameBack);
 
   // ---------- Drag between her main screen and the study chat, following the finger (like ChatGPT's voice orb) ----------
@@ -1170,7 +1170,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     const l = (await rpc('chizu_line') || [])[0];
     if (l) {
       const no = String(l.next_pos - 1).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
-      document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.';
+      document.getElementById('ownP').textContent = (l.next_price > 0 ? 'Her number is her price: No.' + no + ' is ' + price + ' right now.' : 'No.' + no + ' is free right now.') + ' Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.';
       document.getElementById('ownBtn').textContent = 'Take her home · No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
     }
     el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
