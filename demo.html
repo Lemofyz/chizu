@@ -1114,7 +1114,7 @@ posthog.init('phc_zkbrVyuvHw6SnPsF3dB6EeVvqDHs2vVdEdExmyZHLtmQ',{api_host:'https
     document.getElementById('ownT').textContent = why === 'pj' ? 'Pajamas are for owners' : 'Keep her for life?';
     const l = (await rpc('chizu_line') || [])[0];
     if (l) {
-      const no = String(l.next_pos).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
+      const no = String(l.next_pos - 1).padStart(4, '0'), price = l.next_price > 0 ? '$' + l.next_price : 'free';
       document.getElementById('ownP').textContent = 'No.' + no + ' is ' + price + ' right now. Owners get 50 fish (about 50 new questions), pajamas to keep, and a numbered card with her name. One-time purchase, full refund before launch.';
       document.getElementById('ownBtn').textContent = 'Take her home · No.' + no + ' · ' + (l.next_price > 0 ? '$' + l.next_price : 'Free');
     }
