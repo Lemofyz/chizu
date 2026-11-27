@@ -408,9 +408,9 @@ async function openStudy() {
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   el('studyAcct').hidden = !s;
   if (s && s.user?.is_anonymous) {
-    el('studyWho').innerHTML = T('游客模式：换设备或清除浏览器数据会丢失记录 · ', "Guest: switching devices or clearing your browser loses your progress · ") + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
-    el('studySave').onclick = saveWithGoogle; el('studyOut').hidden = true;
-  } else if (s) { el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you'); el('studyOut').hidden = false; }
+    el('studyWho').innerHTML = T('游客模式：换设备或清除浏览器数据会丢失记录 · ', 'Guest mode: switching devices or clearing your browser loses your progress · ') + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
+    el('studySave').onclick = saveWithGoogle; el('studyOutWrap').hidden = true;
+  } else if (s) { el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you'); el('studyOutWrap').hidden = false; }
   if (!s) return;
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
   try {
