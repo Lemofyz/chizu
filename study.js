@@ -28,6 +28,8 @@ el('studyGuest').onclick = async () => {
   window.posthog?.capture('guest_started'); openStudy();
 };
 const saveWithGoogle = () => { window.posthog?.capture('guest_save_clicked'); return sb.auth.linkIdentity({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); };
+// Already have an account (or that Google account is already saved): sign in to it instead of linking this guest.
+const signInGoogle = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
 // Chizu asks in a speech bubble at her head's top-right instead of a browser dialog. Resolves true / false.
 function catAsk(text, yes, no) {
   return new Promise(resolve => {
@@ -55,7 +57,10 @@ el('studyOut').onclick = async () => {   // sign out of study (and of the claim 
   location.reload();
 };
 async function finishSignIn() {
-  const code = new URLSearchParams(location.search).get('code');
+  const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
+  // "Save with Google" on a Google account that already has a Chizu: sign in to that account instead.
+  if ((q.get('error_code') || h.get('error_code')) === 'identity_already_exists') { history.replaceState(null, '', location.pathname); signInGoogle(); return false; }
+  const code = q.get('code');
   if (!code) return false;
   history.replaceState(null, '', location.pathname);
   const { error } = await sb.auth.exchangeCodeForSession(code);
@@ -281,7 +286,7 @@ function applyState(st, full = true) {
     // Messages and answered cards in the order they happened; the open question last.
     const items = [...(st.messages || []).map(m => ({ at: m.at || '', m })), ...(st.history || []).map(c => ({ at: c.at, c })),
       ...(st.question ? [{ at: st.question.at || '~', c: st.question }] : [])].sort((a, b) => a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
-    if (!items.length) bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions."));
+    if (!items.length) { bubble('her', T('嗨喵～ 想学什么？告诉我科目，我先出几道小题摸摸底。', "Hi, meow~ What do you want to learn? Tell me the subject and I'll start with a few quick questions.")); if (!subjects.length) starters(); }
     for (const it of items) {
       if (it.c) log().appendChild(makeCard(it.c, false));
       else it.m.role === 'user' ? bubble('me', it.m.content) : staticMd('her', speech(it.m.content));
@@ -289,6 +294,24 @@ function applyState(st, full = true) {
   }
   showQuestion(st.question);
   toBottom();
+}
+// First visit: a few subjects to tap, so nobody has to think of what to type (3 of 3 guests on 11-27 left at the empty box).
+function starters() {
+  const d = document.createElement('div'); d.className = 'starters';
+  d.style.cssText = 'display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .6rem';
+  const list = zh() ? ['英语', '高等数学', '生物', '心理学', '考我今天学的'] : ['Biology', 'Calculus', 'Spanish', 'Psychology', 'Quiz me on my notes'];
+  for (const name of list) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = name;
+    b.style.cssText = 'border:1px solid #d9d2ee;background:#fff;color:#3e3352;border-radius:999px;padding:.38rem .8rem;font:inherit;font-size:.85rem;cursor:pointer';
+    b.onclick = () => {
+      if (busy) return; d.remove(); window.posthog?.capture('starter_tapped', { name });
+      if (/notes|今天学的/.test(name)) { bubble('her pop', T('把笔记拍张照，或者把文件发给我喵～', 'Send me a photo of your notes, or a file, meow~')); el('mFile').click(); return; }
+      paused = false; const t = T('我想学' + name, 'I want to study ' + name);
+      turn({ action: 'say', subjectId: subject, tz: TZ, ...(window.chizuToday?.() || {}), text: t }, t);
+    };
+    d.appendChild(b);
+  }
+  log().appendChild(d);
 }
 // Her messages render a moment later (React), so scroll again once they have their height.
 function toBottom() { log().scrollTop = 1e9; requestAnimationFrame(() => requestAnimationFrame(() => { log().scrollTop = 1e9; })); setTimeout(() => { log().scrollTop = 1e9; }, 200); }
@@ -383,6 +406,7 @@ const hint = () => question && turn({ action: 'hint', questionId: question.id },
 el('studySend').onclick = () => {
   const t = el('studyText').value.trim(); if (!t || busy) return;
   el('studyText').value = ''; el('studyText').blur();   // send closes the keyboard, like ChatGPT
+  log().querySelector('.starters')?.remove();
   paused = false;
   turn({ action: 'say', subjectId: subject, tz: TZ, ...(window.chizuToday?.() || {}), text: t }, t);
 };
@@ -404,12 +428,20 @@ function saveCacheSoon() {
 async function openStudy() {
   window.posthog?.capture('study_opened'); window.chizuPlayed?.('study');
   openSheet('studySheet');
-  const s = await session();
+  let s = await session();
+  // No choice screen (user, 11-27): tapping Study starts a guest session at once and she speaks first.
+  // The old sign-in panel only shows if a guest session can't be made (e.g. too many from one network).
+  if (!s) {
+    el('studyAuth').hidden = true;
+    const { error } = await sb.auth.signInAnonymously().catch(e => ({ error: e }));
+    if (!error) { window.posthog?.capture('guest_started', { auto: true }); s = await session(); }
+  }
   el('studyAuth').hidden = !!s; el('studyMain').hidden = !s;
   el('studyAcct').hidden = !s;
   if (s && s.user?.is_anonymous) {
-    el('studyWho').innerHTML = T('游客模式，换设备会丢记录 · ', 'Guest mode: progress stays on this device · ') + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>';
-    el('studySave').onclick = saveWithGoogle; el('studyOutWrap').hidden = true;
+    el('studyWho').innerHTML = T('游客模式，换设备会丢记录 · ', 'Guest mode: progress stays on this device · ') + '<button type="button" class="save" id="studySave">' + T('用 Google 保存', 'Save with Google') + '</button>' +
+      ' · <button type="button" class="save" id="studyHave">' + T('已有账号？登录', 'Have an account? Sign in') + '</button>';
+    el('studySave').onclick = saveWithGoogle; el('studyHave').onclick = signInGoogle; el('studyOutWrap').hidden = true;
   } else if (s) { el('studyWho').textContent = 'Signed in as ' + (s.user?.email || 'you'); el('studyOutWrap').hidden = false; }
   if (!s) return;
   try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c?.user === s.user.id) applyState(c.st); } catch (_) {}
